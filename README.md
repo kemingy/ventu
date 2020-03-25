@@ -1,12 +1,22 @@
 # Ventu
 
-Help you host your deep learning models easily.
+[![pypi](https://img.shields.io/pypi/v/ventu.svg)](https://pypi.python.org/pypi/ventu)
+[![versions](https://img.shields.io/pypi/pyversions/ventu.svg)](https://github.com/zenchars/ventu)
+
+Serving the deep learning models easily.
+
+## Install
+
+```sh
+pip install vento
+```
 
 ## Features
 
 * Only need to implement Model(`inference`, `preprocess`, `postprocess`)
 * request & response data check using [pydantic](https://pydantic-docs.helpmanual.io)
 * API document using [SpecTree](https://github.com/0b01001001/spectree)
+* backend service using [falcon](falcon.readthedocs.io/)
 * health check
 
 ## Example

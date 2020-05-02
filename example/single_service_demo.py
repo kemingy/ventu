@@ -7,7 +7,7 @@ import onnxruntime
 
 # define the input schema
 class Input(BaseModel):
-    x: Tuple[(str,) * 3]
+    text: Tuple[(str,) * 3]
 
 
 # define the output schema
@@ -25,7 +25,7 @@ class CustomModel(VentuModel):
 
     def preprocess(self, data: Input):
         # data format is defined in ``Input``
-        words = [sent.split(' ')[:4] for sent in data.x]
+        words = [sent.split(' ')[:4] for sent in data.text]
         # padding
         words = [word + [''] * (4 - len(word)) for word in words]
         # build embedding
@@ -39,7 +39,7 @@ class CustomModel(VentuModel):
         # model inference
         return self.sess.run([self.output_name], {self.input_name: data})[0]
 
-    def postprocess(self, data) -> Output:
+    def postprocess(self, data):
         # generate the same format as defined in ``Output``
         return {'label': [bool(numpy.mean(d) > 0.5) for d in data]}
 

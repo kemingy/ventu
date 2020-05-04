@@ -19,7 +19,7 @@ class ServiceStatus(BaseModel):
     service: StatusEnum = StatusEnum.ok
 
 
-def create_app(model, req_schema, resp_schema, use_msgpack, config):
+def create_app(infer, req_schema, resp_schema, use_msgpack, config):
     if use_msgpack:
         handlers = media.Handlers({
             'application/msgpack': media.MessagePackHandler(),
@@ -42,9 +42,6 @@ def create_app(model, req_schema, resp_schema, use_msgpack, config):
             }
 
     class HealthCheck:
-        def __init__(self, model):
-            self.model = model
-
         @api.validate(resp=Response(HTTP_200=ServiceStatus))
         def on_get(self, req, resp):
             """
@@ -59,9 +56,6 @@ def create_app(model, req_schema, resp_schema, use_msgpack, config):
             resp.media = status.dict()
 
     class Inference:
-        def __init__(self, model):
-            self.model = model
-
         @api.validate(json=req_schema, resp=Response(HTTP_200=resp_schema))
         def on_post(self, req, resp):
             """
@@ -69,10 +63,10 @@ def create_app(model, req_schema, resp_schema, use_msgpack, config):
             """
             data = req.context.json
             logger.debug(str(data))
-            resp.media = self.model._infer(data)
+            resp.media = infer(data)
 
     app.add_route('/', Homepage())
-    app.add_route('/health', HealthCheck(model))
-    app.add_route('/inference', Inference(model))
+    app.add_route('/health', HealthCheck())
+    app.add_route('/inference', Inference())
     api.register(app)
     return app

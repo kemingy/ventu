@@ -1,6 +1,8 @@
+import logging
 from wsgiref import simple_server
 
-from .handlers import create_app
+from .service import create_app
+from .protocol import BatchProtocol
 from .config import Config
 
 
@@ -12,6 +14,7 @@ class Ventu:
         self._app = None
         self._sock = None
         self.config = Config()
+        self.logger = logging.getLogger(__name__)
 
     @property
     def app(self):
@@ -19,12 +22,14 @@ class Ventu:
         Falcon application with SpecTree validation
         """
         if self._app is None:
+            self.logger.debug('Create Falcon application')
             self._app = create_app(
-                self, self.req_schema, self.resp_schema, self.use_msgpack, self.config
+                self._infer, self.req_schema, self.resp_schema, self.use_msgpack, self.config
             )
         return self._app
 
-    def run_http(self, host, port):
+    def run_http(self, host=None, port=None):
+        self.logger.info(f'Run HTTP service on {host}:{port}')
         httpd = simple_server.make_server(
             host or self.config.host,
             port or self.config.port,
@@ -35,11 +40,13 @@ class Ventu:
     @property
     def sock(self):
         if self._sock is None:
-            self._sock = create_sock()
+            self.logger.debug('Create socket')
+            self._sock = BatchProtocol(self._infer, self.use_msgpack)
         return self._sock
 
-    def run_socket(self, addr):
-        pass
+    def run_socket(self, addr=None):
+        self.logger.info(f'Run socket on {addr}')
+        self._sock.run(addr or self.config.socket)
 
     def inference(self, data):
         return data

@@ -24,7 +24,11 @@ class Ventu:
         if self._app is None:
             self.logger.debug('Create Falcon application')
             self._app = create_app(
-                self._infer, self.req_schema, self.resp_schema, self.use_msgpack, self.config
+                self._single_infer,
+                self.req_schema,
+                self.resp_schema,
+                self.use_msgpack,
+                self.config
             )
         return self._app
 
@@ -41,12 +45,20 @@ class Ventu:
     def sock(self):
         if self._sock is None:
             self.logger.debug('Create socket')
-            self._sock = BatchProtocol(self._infer, self.use_msgpack)
+            self._sock = BatchProtocol(
+                self._batch_infer,
+                self.req_schema,
+                self.resp_schema,
+                self.use_msgpack,
+            )
         return self._sock
 
     def run_socket(self, addr=None):
         self.logger.info(f'Run socket on {addr}')
-        self._sock.run(addr or self.config.socket)
+        self.sock.run(addr or self.config.socket)
+
+    def batch_inference(self, batch):
+        return batch
 
     def inference(self, data):
         return data
@@ -57,8 +69,14 @@ class Ventu:
     def postprocess(self, data):
         return data
 
-    def _infer(self, data):
+    def _single_infer(self, data):
         data = self.preprocess(data)
         data = self.inference(data)
         data = self.postprocess(data)
         return data
+
+    def _batch_infer(self, batch):
+        batch = [self.preprocess(data) for data in batch]
+        batch = self.inference(batch)
+        batch = [self.postprocess(data) for data in batch]
+        return batch

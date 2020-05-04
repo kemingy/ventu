@@ -4,6 +4,7 @@ import struct
 import json
 
 import msgpack
+from pydantic import ValidationError
 
 
 class BatchProtocol:
@@ -11,7 +12,9 @@ class BatchProtocol:
     INT_BYTE_SIZE = 4
     INIT_MESSAGE = struct.pack(STRUCT_FORMAT, 0)
 
-    def __init__(self, infer, use_msgpack):
+    def __init__(self, infer, req_schema, resp_schema, use_msgpack):
+        self.req_schema = req_schema
+        self.resp_schema = resp_schema
         self.use_msgpack = use_msgpack
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.packer = msgpack.Packer(
@@ -21,28 +24,62 @@ class BatchProtocol:
         self.logger = logging.getLogger(__name__)
         self.infer = infer
 
-    def unpack(self, data):
+    def _pack(self, data):
+        return self.packer.pack(data) if self.use_msgpack else json.dumps(data)
+
+    def _unpack(self, data):
         return msgpack.unpackb(data) if self.use_msgpack else json.loads(data)
 
-    def request(self, conn):
+    def _init_request(self, conn):
         self.logger.info('Send init message')
         conn.sendall(self.INIT_MESSAGE)
 
-    def process(self, conn):
+    def _request(self, conn):
         length_bytes = conn.recv(self.INT_BYTE_SIZE)
         length = struct.unpack(self.STRUCT_FORMAT, length_bytes)[0]
         data = conn.recv(length)
         return data
 
-    def response(self, conn, data):
+    def process(self, conn):
+        batch = msgpack.unpackb(self._request(conn))
+        ids = list(batch.keys())
+
+        # validate
+        validated = []
+        errors = []
+        for i, byte in enumerate(batch.values()):
+            try:
+                obj = self.req_schema(self._unpack(byte))
+                validated.append(obj)
+            except (ValidationError,
+                    json.JSONDecodeError,
+                    msgpack.ExtraData, msgpack.UnpackValueError) as err:
+                errors.append((i, str(err).encode()))
+
+        # inference
+        result = self.infer(validated)
+        assert len(result) == len(validated), (
+            'Wrong number of inference results. '
+            f'Expcet {len(validated)}, get{len(result)}.'
+        )
+
+        # add errors information
+        err_ids = b''
+        result = [self._pack(data) for data in result]
+        for index, err_msg in errors:
+            err_ids += ids[index]
+            result.insert(index, err_msg)
+
+        # build batch job table
+        resp = dict(zip(ids, result))
+        if err_ids:
+            resp['error_ids'] = err_ids
+        self._response(conn, resp)
+
+    def _response(self, conn, data):
         data = self.packer.pack(data)
         conn.sendall(struct.pack(self.STRUCT_FORMAT, len(data)))
         conn.sendall(data)
-
-    def inference(self, data):
-        jobs = msgpack.unpackb(data)
-        result = self.infer([self.unpack(data) for data in jobs.values()])
-        return dict(zip(jobs.keys(), result))
 
     def run(self, addr):
         self.logger.info(f'Connect to socket: {addr}')
@@ -50,12 +87,10 @@ class BatchProtocol:
             try:
                 self.sock.connect(addr)
                 self.logger.info(f'Connect to {self.sock.getpeername()}')
-                self.request(self.sock)
+                self._init_request(self.sock)
 
                 while True:
-                    data = self.process(self.sock)
-                    data = self.inference(data)
-                    self.response(self.sock, data)
+                    self.process(self.sock)
 
             except BrokenPipeError as err:
                 self.logger.warning(f'Broken socket: {err}')

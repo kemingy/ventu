@@ -1,9 +1,11 @@
-from ventu import Ventu
-from typing import Tuple
-from pydantic import BaseModel
 import logging
+from typing import Tuple
+
 import numpy
 import onnxruntime
+from pydantic import BaseModel
+
+from ventu import Ventu
 
 
 # define the input schema
@@ -60,6 +62,6 @@ if __name__ == "__main__":
     # try with `httpie`
     ## health check
         http :8000/health
-    ## inference 
+    ## inference
         http POST :8000/inference text:='["hello", "world", "test"]'
     """

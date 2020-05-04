@@ -1,6 +1,7 @@
-from ventu import VentuModel, VentuService
+from ventu import Ventu
 from typing import Tuple
 from pydantic import BaseModel
+import logging
 import numpy
 import onnxruntime
 
@@ -15,9 +16,9 @@ class Output(BaseModel):
     label: Tuple[(bool,) * 3]
 
 
-class CustomModel(VentuModel):
+class CustomModel(Ventu):
     def __init__(self, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         # load model
         self.sess = onnxruntime.InferenceSession('./sigmoid.onnx')
         self.input_name = self.sess.get_inputs()[0].name
@@ -45,5 +46,20 @@ class CustomModel(VentuModel):
 
 
 if __name__ == "__main__":
-    service = VentuService(CustomModel, Input, Output)
-    service.run(host='localhost', port=8000)
+    logger = logging.getLogger()
+    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
+
+    model = CustomModel(Input, Output)
+    model.run_http(host='localhost', port=8000)
+
+    """
+    # try with `httpie`
+    ## health check
+        http :8000/health
+    ## inference 
+        http POST :8000/inference text:='["hello", "world", "test"]'
+    """

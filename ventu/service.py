@@ -1,33 +1,78 @@
-from wsgiref import simple_server
+from enum import Enum
+import logging
 
-from .model import VentuModel
-from .config import Config
-from .handlers import create_app
+import falcon
+from falcon import media
+from spectree import SpecTree, Response
+from pydantic import BaseModel
 
 
-class VentuService:
-    def __init__(self, model_cls, json_schema, resp_schema, *args, **kwargs):
-        self.config = Config()
-        assert issubclass(model_cls, VentuModel), (
-            "The model doesn't implement all the class method: "
-            "(`inference`, `preprocess`, `postprocess`)"
-        )
-        self.app = create_app(
-            model_cls(*args, **kwargs, **self.config.dict()),
-            json_schema,
-            resp_schema,
-            self.config,
-        )
+class StatusEnum(str, Enum):
+    ok = 'OK'
+    error = 'Error'
 
-    def run(self, host=None, port=None, **kwargs):
-        """
-        :param str host: service host
-        :param int port: service port
-        :param kwargs: ``gunicorn`` configs
-        """
-        httpd = simple_server.make_server(
-            host or self.config.host,
-            port or self.config.port,
-            self.app
-        )
-        httpd.serve_forever()
+
+class ServiceStatus(BaseModel):
+    inference: StatusEnum
+    preprocess: StatusEnum
+    postprocess: StatusEnum
+    service: StatusEnum = StatusEnum.ok
+
+
+def create_app(model, req_schema, resp_schema, use_msgpack, config):
+    if use_msgpack:
+        handlers = media.Handlers({
+            'application/msgpack': media.MessagePackHandler(),
+        })
+        app = falcon.API(media_type='application/msgpack')
+        app.req_options.media_handlers = handlers
+        app.resp_options.media_handlers = handlers
+    else:
+        app = falcon.API()
+
+    api = SpecTree('falcon', title=config.name, version=config.version)
+    logger = logging.getLogger(__name__)
+
+    class Homepage:
+        def on_get(self, req, resp):
+            resp.media = {
+                'health check': {'/health': 'GET'},
+                'inference': {'/inference': 'POST'},
+                'API document': {'/apidoc/redoc': 'GET', '/apidoc/swagger': 'GET'}
+            }
+
+    class HealthCheck:
+        def __init__(self, model):
+            self.model = model
+
+        @api.validate(resp=Response(HTTP_200=ServiceStatus))
+        def on_get(self, req, resp):
+            """
+            Health check
+            """
+            status = ServiceStatus(
+                inference=StatusEnum.ok,
+                preprocess=StatusEnum.ok,
+                postprocess=StatusEnum.ok,
+            )
+            logger.debug(str(status))
+            resp.media = status.dict()
+
+    class Inference:
+        def __init__(self, model):
+            self.model = model
+
+        @api.validate(json=req_schema, resp=Response(HTTP_200=resp_schema))
+        def on_post(self, req, resp):
+            """
+            Deep learning model inference
+            """
+            data = req.context.json
+            logger.debug(str(data))
+            resp.media = self.model._infer(data)
+
+    app.add_route('/', Homepage())
+    app.add_route('/health', HealthCheck(model))
+    app.add_route('/inference', Inference(model))
+    api.register(app)
+    return app

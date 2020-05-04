@@ -17,7 +17,7 @@ pip install vento
 * request & response data check using [pydantic](https://pydantic-docs.helpmanual.io)
 * API document using [SpecTree](https://github.com/0b01001001/spectree)
 * backend service using [falcon](falcon.readthedocs.io/)
-* dynamic batching with []() using Unix Domain Socket
+* dynamic batching with [batching](https://github.com/kemingy/batching) using Unix Domain Socket
 * health check
 
 ## Example

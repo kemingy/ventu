@@ -44,7 +44,7 @@ class BatchProtocol:
         batch = msgpack.unpackb(self._request(conn))
         ids = list(batch.keys())
 
-        # validate
+        # validate request
         validated = []
         errors = []
         for i, byte in enumerate(batch.values()):
@@ -62,6 +62,10 @@ class BatchProtocol:
             'Wrong number of inference results. '
             f'Expcet {len(validated)}, get{len(result)}.'
         )
+
+        # validate response
+        for data in result:
+            self.resp_schema.validate(data)
 
         # add errors information
         err_ids = b''

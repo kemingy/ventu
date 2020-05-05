@@ -77,6 +77,6 @@ class Ventu:
 
     def _batch_infer(self, batch):
         batch = [self.preprocess(data) for data in batch]
-        batch = self.inference(batch)
+        batch = self.batch_inference(batch)
         batch = [self.postprocess(data) for data in batch]
         return batch

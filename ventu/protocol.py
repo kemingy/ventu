@@ -28,7 +28,7 @@ class BatchProtocol:
         return self.packer.pack(data) if self.use_msgpack else json.dumps(data)
 
     def _unpack(self, data):
-        return msgpack.unpackb(data) if self.use_msgpack else json.loads(data)
+        return msgpack.unpackb(data, raw=False) if self.use_msgpack else json.loads(data)
 
     def _init_request(self, conn):
         self.logger.info('Send init message')
@@ -41,7 +41,7 @@ class BatchProtocol:
         return data
 
     def process(self, conn):
-        batch = msgpack.unpackb(self._request(conn))
+        batch = msgpack.unpackb(self._request(conn), raw=False)
         ids = list(batch.keys())
 
         # validate request
@@ -49,7 +49,8 @@ class BatchProtocol:
         errors = []
         for i, byte in enumerate(batch.values()):
             try:
-                obj = self.req_schema(self._unpack(byte))
+                data = self._unpack(byte)
+                obj = self.req_schema(**data if isinstance(data, dict) else data)
                 validated.append(obj)
             except (ValidationError,
                     json.JSONDecodeError,

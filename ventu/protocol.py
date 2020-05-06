@@ -52,10 +52,11 @@ class BatchProtocol:
                 data = self._unpack(byte)
                 obj = self.req_schema(**data if isinstance(data, dict) else data)
                 validated.append(obj)
-            except (ValidationError,
-                    json.JSONDecodeError,
+            except ValidationError as err:
+                errors.append((i, self._pack(err.errors())))
+            except (json.JSONDecodeError,
                     msgpack.ExtraData, msgpack.UnpackValueError) as err:
-                errors.append((i, str(err).encode()))
+                errors.append((i, self._pack(str(err))))
 
         # inference
         result = self.infer(validated)
@@ -69,7 +70,7 @@ class BatchProtocol:
             self.resp_schema.validate(data)
 
         # add errors information
-        err_ids = b''
+        err_ids = ''
         result = [self._pack(data) for data in result]
         for index, err_msg in errors:
             err_ids += ids[index]

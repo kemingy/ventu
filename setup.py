@@ -14,13 +14,13 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 setup(
     name='ventu',
-    version='0.2.0',
+    version='0.3.0',
     author='Keming Yang',
     author_email='kemingy94@gmail.com',
     description=('Host your deep learning models easily.'),
     long_description=readme,
     long_description_content_type='text/markdown',
-    url='https://github.com/zenchars/ventu',
+    url='https://github.com/kemingy/ventu',
     packages=find_packages(exclude=['examples*', 'tests*']),
     package_data={
     },

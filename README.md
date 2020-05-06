@@ -18,6 +18,8 @@ pip install vento
 * API document using [SpecTree](https://github.com/0b01001001/spectree)
 * backend service using [falcon](falcon.readthedocs.io/)
 * dynamic batching with [batching](https://github.com/kemingy/batching) using Unix Domain Socket
+    * errors in one request won't affect others in the same batch
+* support all the runtime
 * health check
 
 ## Example
@@ -99,6 +101,8 @@ if __name__ == "__main__":
 **Server**
 
 Need to run the [batching](https://github.com/kemingy/batching) server first.
+
+To use batching, you need to overwrite `batch_inference` instead of `inference`.
 
 ```python
 import logging

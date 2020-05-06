@@ -35,6 +35,7 @@ def create_app(infer, req_schema, resp_schema, use_msgpack, config):
 
     class Homepage:
         def on_get(self, req, resp):
+            logger.debug('return service endpoints')
             resp.media = {
                 'health check': {'/health': 'GET'},
                 'inference': {'/inference': 'POST'},

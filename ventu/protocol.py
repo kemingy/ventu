@@ -43,6 +43,7 @@ class BatchProtocol:
     def process(self, conn):
         batch = msgpack.unpackb(self._request(conn), raw=False)
         ids = list(batch.keys())
+        self.logger.debug(f'Received job ids: {ids}')
 
         # validate request
         validated = []
@@ -54,9 +55,14 @@ class BatchProtocol:
                 validated.append(obj)
             except ValidationError as err:
                 errors.append((i, self._pack(err.errors())))
+                self.logger.info(
+                    f'Job {ids[i]} validation error',
+                    extra={'Validation': err.errors()}
+                )
             except (json.JSONDecodeError,
                     msgpack.ExtraData, msgpack.UnpackValueError) as err:
                 errors.append((i, self._pack(str(err))))
+                self.logger.info(f'Job {ids[i]} error: {err}')
 
         # inference
         result = self.infer(validated)

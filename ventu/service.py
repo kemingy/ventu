@@ -13,6 +13,9 @@ class StatusEnum(str, Enum):
 
 
 class ServiceStatus(BaseModel):
+    """
+    service health status
+    """
     inference: StatusEnum
     preprocess: StatusEnum
     postprocess: StatusEnum
@@ -20,6 +23,16 @@ class ServiceStatus(BaseModel):
 
 
 def create_app(infer, req_schema, resp_schema, use_msgpack, config):
+    """
+    create :class:`falcon` application
+
+    :param infer: model infer function (contains `preprocess`, `inference`, and `postprocess`)
+    :param req_schema: request schema defined with :class:`pydantic.BaseModel`
+    :param resp_schema: request schema defined with :class:`pydantic.BaseModel`
+    :param bool use_msgpack: use msgpack for serialization or not (default: JSON)
+    :param config: configs :class:`ventu.config.Config`
+    :return: a :class:`falcon` application
+    """
     if use_msgpack:
         handlers = media.Handlers({
             'application/msgpack': media.MessagePackHandler(),

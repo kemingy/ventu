@@ -8,6 +8,14 @@ from pydantic import ValidationError
 
 
 class BatchProtocol:
+    """
+    protocol used to communicate with batching service
+
+    :param infer: model infer function (contains `preprocess`, `batch_inference` and `postprocess`)
+    :param req_schema: request schema defined with `pydantic`
+    :param resp_schema: response schema defined with `pydantic`
+    :param bool use_msgpack: use msgpack for serialization or not (default: JSON)
+    """
     STRUCT_FORMAT = '!i'
     INT_BYTE_SIZE = 4
     INIT_MESSAGE = struct.pack(STRUCT_FORMAT, 0)
@@ -41,6 +49,11 @@ class BatchProtocol:
         return data
 
     def process(self, conn):
+        """
+        process batch queries and return the inference results
+
+        :param conn: socket connection
+        """
         batch = msgpack.unpackb(self._request(conn), raw=False)
         ids = list(batch.keys())
         self.logger.debug(f'Received job ids: {ids}')
@@ -51,6 +64,7 @@ class BatchProtocol:
         for i, byte in enumerate(batch.values()):
             try:
                 data = self._unpack(byte)
+                # schema can be dict(default) or string(`__root__`)
                 obj = self.req_schema(**data if isinstance(data, dict) else data)
                 validated.append(obj)
             except ValidationError as err:
@@ -94,6 +108,13 @@ class BatchProtocol:
         conn.sendall(data)
 
     def run(self, addr):
+        """
+        run socket communication
+
+        this should run **after** the socket file is created by the batching service
+
+        :param string addr: socket file path
+        """
         self.logger.info(f'Connect to socket: {addr}')
         while True:
             try:
@@ -109,5 +130,8 @@ class BatchProtocol:
                 continue
 
     def stop(self):
+        """
+        stop the socket communication
+        """
         self.logger.info('Close socket')
         self.sock.close()

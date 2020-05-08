@@ -1,9 +1,9 @@
 import logging
 from wsgiref import simple_server
 
-from .service import create_app
-from .protocol import BatchProtocol
 from .config import Config
+from .protocol import BatchProtocol
+from .service import create_app
 
 
 class Ventu:
@@ -23,6 +23,7 @@ class Ventu:
         * ``inference`` (for standalone HTTP service)
         * ``batch_inference`` (when working with batching service)
     """
+
     def __init__(self, req_schema, resp_schema, use_msgpack=False, *args, **kwargs):
         self.req_schema = req_schema
         self.resp_schema = resp_schema

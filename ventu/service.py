@@ -1,10 +1,10 @@
-from enum import Enum
 import logging
+from enum import Enum
 
 import falcon
 from falcon import media
-from spectree import SpecTree, Response
 from pydantic import BaseModel
+from spectree import SpecTree, Response
 
 
 class StatusEnum(str, Enum):

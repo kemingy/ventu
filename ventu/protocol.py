@@ -1,7 +1,7 @@
+import json
 import logging
 import socket
 import struct
-import json
 
 import msgpack
 from pydantic import ValidationError

@@ -2,6 +2,8 @@
 
 [![pypi](https://img.shields.io/pypi/v/ventu.svg)](https://pypi.python.org/pypi/ventu)
 [![versions](https://img.shields.io/pypi/pyversions/ventu.svg)](https://github.com/zenchars/ventu)
+![Python Test](https://github.com/kemingy/ventu/workflows/Python%20package/badge.svg)
+[![Python document](https://github.com/kemingy/ventu/workflows/Python%20document/badge.svg)](https://kemingy.github.io/ventu)
 
 Serving the deep learning models easily.
 

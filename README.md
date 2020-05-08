@@ -187,8 +187,8 @@ http POST :8000/inference text:='["hello", "world", "test"]'
 
 Open `localhost:8000/apidoc/redoc` in your browser to see the API document.
 
-## Run with Gunicorn as single services
+**Run with Gunicorn**
 
 ```shell script
-gunicorn -w 2 ventu.app
+gunicorn -w 2 model.app
 ```

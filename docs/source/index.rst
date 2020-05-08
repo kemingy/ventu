@@ -216,12 +216,12 @@ try with ``httpie``
 Open ``localhost:8000/apidoc/redoc`` in your browser to see the API
 document.
 
-Run with Gunicorn as single services
-------------------------------------
+Run with Gunicorn
+~~~~~~~~~~~~~~~~~~~
 
 .. code:: shell
 
-   gunicorn -w 2 ventu.app
+   gunicorn -w 2 model.app
 
 .. |pypi| image:: https://img.shields.io/pypi/v/ventu.svg
    :target: https://pypi.python.org/pypi/ventu

@@ -37,7 +37,7 @@ jobs:
         make test
     - name: Generate docs
       run: |
-        make docs
+        make doc
         cd docs/build/html
         git config --global url."https://".insteadOf git://
         git config --global url."https://github.com/".insteadOf git@github.com:

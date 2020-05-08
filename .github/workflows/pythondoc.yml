@@ -37,7 +37,7 @@ jobs:
     - name: Generate docs
       run: |
         make docs
-        cd docs/builds/html
+        cd docs/build/html
         git config --global url."https://".insteadOf git://
         git config --global url."https://github.com/".insteadOf git@github.com:
         remote_repo="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"

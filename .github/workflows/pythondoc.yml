@@ -45,7 +45,7 @@ jobs:
         git config --global url."https://".insteadOf git://
         git config --global url."https://github.com/".insteadOf git@github.com:
         remote_repo="https://${GITHUB_ACTOR}:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-        remote_branch=docs
+        remote_branch=gh-pages
 
         git init
         git config user.name "github-actions-bot"

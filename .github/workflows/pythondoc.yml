@@ -8,6 +8,7 @@ on:
     paths: 
       - 'ventu/**'
       - 'docs/**'
+      - '.github/workflows/pythondoc.yml'
   pull_request:
     branches: [ master ]
 

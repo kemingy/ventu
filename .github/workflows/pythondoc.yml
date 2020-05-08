@@ -37,14 +37,12 @@ jobs:
       run: |
         make test
     - name: Generate docs
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         make doc
         cd docs/build/html
         git config --global url."https://".insteadOf git://
         git config --global url."https://github.com/".insteadOf git@github.com:
-        remote_repo="https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+        remote_repo="https://${repo-token}@github.com/${GITHUB_REPOSITORY}.git"
         remote_branch=docs
 
         git init

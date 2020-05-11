@@ -6,7 +6,7 @@
 Welcome to ventu's documentation!
 =================================
 
-|pypi| |versions|
+|pypi| |versions| |Python Test| |Python document|
 
 Serving the deep learning models easily.
 
@@ -37,12 +37,17 @@ Features
 
 -  support all the runtime
 -  health check
+-  inference warm-up
 
 How to use
 ----------
 
 -  define your request data schema and response data schema with
    ``pydantic``
+
+   -  add examples to ``schema.Config.schema_extra[examples]`` for
+      warm-up and health check (optional)
+
 -  inherit ``ventu.Ventu``, implement the ``preprocess`` and
    ``postprocess`` methods
 -  for standalone HTTP service, implement the ``inference`` method, run
@@ -73,16 +78,37 @@ demo <https://github.com/kemingy/batching/examples>`__.
    from ventu import Ventu
 
 
+   # request schema
    class Req(BaseModel):
        num: int
 
+       # request examples, used for health check and inference warm-up
+       class Config:
+           schema_extra = {
+               'examples': [
+                   {'num': 23},
+                   {'num': 0},
+               ]
+           }
 
+
+   # response schema
    class Resp(BaseModel):
        square: int
+
+       # response examples, should be the true results for request examples
+       class Config:
+           schema_extra = {
+               'examples': [
+                   {'square': 23 * 23},
+                   {'square': 0},
+               ]
+           }
 
 
    class ModelInference(Ventu):
        def __init__(self, *args, **kwargs):
+           # init parent class
            super().__init__(*args, **kwargs)
 
        def preprocess(self, data: Req):
@@ -145,17 +171,28 @@ source code can be found in
 
 .. code:: python
 
-   from ventu import Ventu
-   from typing import Tuple
-   from pydantic import BaseModel
    import logging
+   import pathlib
+   from typing import Tuple
+
    import numpy
    import onnxruntime
+   from pydantic import BaseModel
+
+   from ventu import Ventu
 
 
    # define the input schema
    class Input(BaseModel):
        text: Tuple[(str,) * 3]
+
+       # provide an example for health check and inference warm-up
+       class Config:
+           schema_extra = {
+               'examples': [
+                   {'text': ('hello', 'world', 'test')},
+               ]
+           }
 
 
    # define the output schema
@@ -164,10 +201,10 @@ source code can be found in
 
 
    class CustomModel(Ventu):
-       def __init__(self, *args, **kwargs):
+       def __init__(self, model_path, *args, **kwargs):
            super().__init__(*args, **kwargs)
            # load model
-           self.sess = onnxruntime.InferenceSession('./sigmoid.onnx')
+           self.sess = onnxruntime.InferenceSession(model_path)
            self.input_name = self.sess.get_inputs()[0].name
            self.output_name = self.sess.get_outputs()[0].name
 
@@ -200,7 +237,8 @@ source code can be found in
        logger.setLevel(logging.DEBUG)
        logger.addHandler(handler)
 
-       model = CustomModel(Input, Output)
+       model_path = pathlib.Path(__file__).absolute().parent / 'sigmoid.onnx'
+       model = CustomModel(str(model_path), Input, Output)
        model.run_http(host='localhost', port=8000)
 
 try with ``httpie``
@@ -212,12 +250,10 @@ try with ``httpie``
    # inference
    http POST :8000/inference text:='["hello", "world", "test"]'
 
-
 Open ``localhost:8000/apidoc/redoc`` in your browser to see the API
 document.
 
-Run with Gunicorn
-~~~~~~~~~~~~~~~~~~~
+**Run with Gunicorn**
 
 .. code:: shell
 
@@ -227,6 +263,9 @@ Run with Gunicorn
    :target: https://pypi.python.org/pypi/ventu
 .. |versions| image:: https://img.shields.io/pypi/pyversions/ventu.svg
    :target: https://github.com/zenchars/ventu
+.. |Python Test| image:: https://github.com/kemingy/ventu/workflows/Python%20package/badge.svg
+.. |Python document| image:: https://github.com/kemingy/ventu/workflows/Python%20document/badge.svg
+   :target: https://kemingy.github.io/ventu
 
 
 .. toctree::

@@ -64,8 +64,7 @@ class BatchProtocol:
         for i, byte in enumerate(batch.values()):
             try:
                 data = self._unpack(byte)
-                # schema can be dict(default) or string(`__root__`)
-                obj = self.req_schema(**data if isinstance(data, dict) else data)
+                obj = self.req_schema.parse_obj(data)
                 validated.append(obj)
             except ValidationError as err:
                 errors.append((i, self._pack(err.errors())))
@@ -87,7 +86,7 @@ class BatchProtocol:
 
         # validate response
         for data in result:
-            self.resp_schema.validate(data)
+            self.resp_schema.parse_obj(data)
 
         # add errors information
         err_ids = ''

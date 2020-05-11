@@ -1,8 +1,7 @@
 import logging
 from enum import Enum
 
-import falcon
-from falcon import media
+from falcon import API, media
 from pydantic import BaseModel
 from spectree import SpecTree, Response
 
@@ -37,11 +36,11 @@ def create_app(infer, req_schema, resp_schema, use_msgpack, config):
         handlers = media.Handlers({
             'application/msgpack': media.MessagePackHandler(),
         })
-        app = falcon.API(media_type='application/msgpack')
+        app = API(media_type='application/msgpack')
         app.req_options.media_handlers = handlers
         app.resp_options.media_handlers = handlers
     else:
-        app = falcon.API()
+        app = API()
 
     api = SpecTree('falcon', title=config.name, version=config.version)
     logger = logging.getLogger(__name__)

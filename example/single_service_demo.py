@@ -1,4 +1,5 @@
 import logging
+import pathlib
 from typing import Tuple
 
 import numpy
@@ -19,10 +20,10 @@ class Output(BaseModel):
 
 
 class CustomModel(Ventu):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model_path, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # load model
-        self.sess = onnxruntime.InferenceSession('./sigmoid.onnx')
+        self.sess = onnxruntime.InferenceSession(model_path)
         self.input_name = self.sess.get_inputs()[0].name
         self.output_name = self.sess.get_outputs()[0].name
 
@@ -55,7 +56,8 @@ if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
-    model = CustomModel(Input, Output)
+    model_path = pathlib.Path(__file__).absolute().parent / 'sigmoid.onnx'
+    model = CustomModel(str(model_path), Input, Output)
     model.run_http(host='localhost', port=8000)
 
     """

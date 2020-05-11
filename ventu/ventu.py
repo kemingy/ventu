@@ -61,7 +61,8 @@ class Ventu:
                 self.logger.info('Check single inference warm-up result')
                 expect = self.resp_examples[index]
                 self.resp_schema.parse_obj(expect)
-                assert expect == result
+                assert expect == result, \
+                    f'does not match {expect} != {result} for {example}'
         else:
             self.logger.info('Batch inference warm-up')
             examples = [self.req_schema.parse_obj(data) for data in self.req_examples]
@@ -70,7 +71,8 @@ class Ventu:
                 self.logger.info('Check batch inference warm-up results')
                 for i in range(len(self.resp_examples)):
                     self.resp_schema.parse_obj(results[i])
-                    assert results[i] == self.resp_examples[i]
+                    assert results[i] == self.resp_examples[i], \
+                        f'does not match {self.resp_examples[i]} != {results[i]} for {examples[i]}'
 
         return True
 

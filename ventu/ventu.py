@@ -41,33 +41,54 @@ class Ventu:
         self.config = Config()
         self.logger = logging.getLogger(__name__)
 
+    def health_check(self, batch=False):
+        """
+        health check for model inference (can also be used to warm-up)
+
+        :param bool batch: batch inference or single inference (default)
+        :return bool: ``True`` if passed health check
+        """
+        if not self.req_examples:
+            self.logger.info('Please provide examples for inference warm-up')
+            return
+
+        if not batch:
+            index = random.choice(range(len(self.req_examples)))
+            example = self.req_examples[index]
+            self.logger.info(f'Single inference warm-up with example: {example}')
+            result = self._single_infer(self.req_schema.parse_obj(example))
+            if self.resp_examples:
+                self.logger.info('Check single inference warm-up result')
+                expect = self.resp_examples[index]
+                self.resp_schema.parse_obj(expect)
+                assert expect == result
+        else:
+            self.logger.info('Batch inference warm-up')
+            examples = [self.req_schema.parse_obj(data) for data in self.req_examples]
+            results = self._batch_infer(examples)
+            if self.resp_examples:
+                self.logger.info('Check batch inference warm-up results')
+                for i in range(len(self.resp_examples)):
+                    self.resp_schema.parse_obj(results[i])
+                    assert results[i] == self.resp_examples[i]
+
+        return True
+
     @property
     def app(self):
         """
         Falcon application with SpecTree validation
         """
         if self._app is None:
-            # warm-up
-            if self.req_examples:
-                index = random.choice(range(len(self.req_examples)))
-                example = self.req_examples[index]
-                self.logger.info(f'Warm-up inference with example: {example}')
-                result = self._single_infer(self.req_schema.parse_obj(example))
-                if self.resp_examples:
-                    self.logger.info('Check single inference warm-up result')
-                    expect = self.resp_examples[index]
-                    self.resp_schema.parse_obj(expect)
-                    assert expect == result
-            else:
-                self.logger.info('Please provide examples for inference warm-up')
-
+            self.health_check()
             self.logger.debug('Create Falcon application')
             self._app = create_app(
                 self._single_infer,
+                self.health_check,
                 self.req_schema,
                 self.resp_schema,
                 self.use_msgpack,
-                self.config
+                self.config,
             )
         return self._app
 
@@ -94,17 +115,7 @@ class Ventu:
         this is a instance of :class:`ventu.protocol.BatchProtocol`
         """
         if self._sock is None:
-            # warm-up
-            if self.req_examples:
-                self.logger.info('Batch inference warm-up')
-                examples = [self.req_schema.parse_obj(data) for data in self.req_examples]
-                results = self._batch_infer(examples)
-                if self.resp_examples:
-                    self.logger.info('Check batch inference warm-up results')
-                    for i in range(len(self.resp_examples)):
-                        self.resp_schema.parse_obj(results[i])
-                        assert results[i] == self.resp_examples[i]
-
+            self.health_check(batch=True)
             self.logger.debug('Create socket')
             self._sock = BatchProtocol(
                 self._batch_infer,

@@ -49,8 +49,6 @@ def test_http(client):
     assert client.unpack(resp.content) == {
         'service': 'OK',
         'inference': 'OK',
-        'preprocess': 'OK',
-        'postprocess': 'OK',
     }
 
     # inference

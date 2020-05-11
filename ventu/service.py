@@ -16,16 +16,15 @@ class ServiceStatus(BaseModel):
     service health status
     """
     inference: StatusEnum
-    preprocess: StatusEnum
-    postprocess: StatusEnum
     service: StatusEnum = StatusEnum.ok
 
 
-def create_app(infer, req_schema, resp_schema, use_msgpack, config):
+def create_app(infer, health_check, req_schema, resp_schema, use_msgpack, config):
     """
     create :class:`falcon` application
 
     :param infer: model infer function (contains `preprocess`, `inference`, and `postprocess`)
+    :param health_check: model health check function (need examples provided in schema)
     :param req_schema: request schema defined with :class:`pydantic.BaseModel`
     :param resp_schema: request schema defined with :class:`pydantic.BaseModel`
     :param bool use_msgpack: use msgpack for serialization or not (default: JSON)
@@ -60,11 +59,12 @@ def create_app(infer, req_schema, resp_schema, use_msgpack, config):
             """
             Health check
             """
-            status = ServiceStatus(
-                inference=StatusEnum.ok,
-                preprocess=StatusEnum.ok,
-                postprocess=StatusEnum.ok,
-            )
+            status = ServiceStatus(inference=StatusEnum.ok)
+            try:
+                health_check()
+            except AssertionError as err:
+                status.inference = StatusEnum.error
+                logger.warning(f'Service health check error: {err}')
             logger.debug(str(status))
             resp.media = status.dict()
 

@@ -1,4 +1,4 @@
-falcon>=2.0
+falcon==2.0.0
 spectree>=0.3.3
-pydantic>=1.4
+pydantic>=1.5.1
 msgpack-python>=0.5.6

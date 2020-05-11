@@ -5,6 +5,7 @@ name: Python document
 
 on:
   push:
+    branches: [ master ]
     paths: 
       - 'ventu/**'
       - 'docs/**'

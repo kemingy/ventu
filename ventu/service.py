@@ -1,8 +1,7 @@
 import logging
 from enum import Enum
 
-import falcon
-from falcon import media
+from falcon import API, media
 from pydantic import BaseModel
 from spectree import SpecTree, Response
 
@@ -17,16 +16,15 @@ class ServiceStatus(BaseModel):
     service health status
     """
     inference: StatusEnum
-    preprocess: StatusEnum
-    postprocess: StatusEnum
     service: StatusEnum = StatusEnum.ok
 
 
-def create_app(infer, req_schema, resp_schema, use_msgpack, config):
+def create_app(infer, health_check, req_schema, resp_schema, use_msgpack, config):
     """
     create :class:`falcon` application
 
     :param infer: model infer function (contains `preprocess`, `inference`, and `postprocess`)
+    :param health_check: model health check function (need examples provided in schema)
     :param req_schema: request schema defined with :class:`pydantic.BaseModel`
     :param resp_schema: request schema defined with :class:`pydantic.BaseModel`
     :param bool use_msgpack: use msgpack for serialization or not (default: JSON)
@@ -37,11 +35,11 @@ def create_app(infer, req_schema, resp_schema, use_msgpack, config):
         handlers = media.Handlers({
             'application/msgpack': media.MessagePackHandler(),
         })
-        app = falcon.API(media_type='application/msgpack')
+        app = API(media_type='application/msgpack')
         app.req_options.media_handlers = handlers
         app.resp_options.media_handlers = handlers
     else:
-        app = falcon.API()
+        app = API()
 
     api = SpecTree('falcon', title=config.name, version=config.version)
     logger = logging.getLogger(__name__)
@@ -61,11 +59,12 @@ def create_app(infer, req_schema, resp_schema, use_msgpack, config):
             """
             Health check
             """
-            status = ServiceStatus(
-                inference=StatusEnum.ok,
-                preprocess=StatusEnum.ok,
-                postprocess=StatusEnum.ok,
-            )
+            status = ServiceStatus(inference=StatusEnum.ok)
+            try:
+                health_check()
+            except AssertionError as err:
+                status.inference = StatusEnum.error
+                logger.warning(f'Service health check error: {err}')
             logger.debug(str(status))
             resp.media = status.dict()
 

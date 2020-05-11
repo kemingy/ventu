@@ -13,6 +13,14 @@ from ventu import Ventu
 class Input(BaseModel):
     text: Tuple[(str,) * 3]
 
+    # provide an example for health check and inference warm-up
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'text': ('hello', 'world', 'test')},
+            ]
+        }
+
 
 # define the output schema
 class Output(BaseModel):

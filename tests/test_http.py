@@ -11,9 +11,25 @@ from ventu import Ventu
 class Req(BaseModel):
     text: str
 
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'text': 'hello'},
+                {'text': 'spam@'},
+            ]
+        }
+
 
 class Resp(BaseModel):
     spam: bool
+
+    class Config:
+        schema_extra = {
+            'examples': [
+                {'spam': False},
+                {'spam': True},
+            ]
+        }
 
 
 class AntiSpam(Ventu):

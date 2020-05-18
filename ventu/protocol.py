@@ -25,10 +25,7 @@ class BatchProtocol:
         self.resp_schema = resp_schema
         self.use_msgpack = use_msgpack
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.packer = msgpack.Packer(
-            autoreset=True,
-            use_bin_type=True,
-        )
+        self.packer = msgpack.Packer(autoreset=True, use_bin_type=True)
         self.logger = logging.getLogger(__name__)
         self.infer = infer
 
@@ -73,7 +70,7 @@ class BatchProtocol:
                     extra={'Validation': err.errors()}
                 )
             except (json.JSONDecodeError,
-                    msgpack.ExtraData, msgpack.UnpackValueError) as err:
+                    msgpack.ExtraData, msgpack.FormatError, msgpack.StackError) as err:
                 errors.append((i, self._pack(str(err))))
                 self.logger.info(f'Job {ids[i]} error: {err}')
 

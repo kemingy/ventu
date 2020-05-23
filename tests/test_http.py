@@ -55,6 +55,7 @@ def test_http(client):
     assert resp.status_code == 200
     assert client.unpack(resp.content) == {
         'health check': {'/health': 'GET'},
+        'metrics': {'/metrics': 'GET'},
         'inference': {'/inference': 'POST'},
         'API document': {'/apidoc/redoc': 'GET', '/apidoc/swagger': 'GET'}
     }
@@ -66,6 +67,11 @@ def test_http(client):
         'service': 'OK',
         'inference': 'OK',
     }
+
+    # metrics
+    resp = client.simulate_request('GET', '/metrics')
+    assert resp.status_code == 200
+    assert len(resp.content) > 0
 
     # inference
     resp = client.simulate_request('GET', '/inference')

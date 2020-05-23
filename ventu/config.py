@@ -11,11 +11,11 @@ class Config(BaseSettings):
     :ivar port: default port for the HTTP service
     :ivar socket: default socket file to communicate with batching service
     """
-    name: str = Field('Deep Learning Service', env='name')
-    version: str = Field('latest', env='version')
-    host: str = Field('localhost', env='host')
-    port: int = Field(8000, ge=80, le=65535, env='port')
-    socket: str = Field('batching.socket', env='socket')
+    name: str = Field('Deep Learning Service')
+    version: str = Field('latest')
+    host: str = Field('localhost')
+    port: int = Field(8000, ge=80, le=65535)
+    socket: str = Field('batching.socket')
 
     class Config:
         env_prefix = 'ventu_'

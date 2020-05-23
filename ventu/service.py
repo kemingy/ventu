@@ -1,9 +1,11 @@
+import os
 import logging
 from enum import Enum
 
 from falcon import API, media
 from pydantic import BaseModel
 from spectree import SpecTree, Response
+from prometheus_client import multiprocess, CONTENT_TYPE_LATEST, generate_latest
 
 
 class StatusEnum(str, Enum):
@@ -19,11 +21,12 @@ class ServiceStatus(BaseModel):
     service: StatusEnum = StatusEnum.ok
 
 
-def create_app(infer, health_check, req_schema, resp_schema, use_msgpack, config):
+def create_app(infer, metric_registry, health_check, req_schema, resp_schema, use_msgpack, config):
     """
     create :class:`falcon` application
 
     :param infer: model infer function (contains `preprocess`, `inference`, and `postprocess`)
+    :param metric_registry: Prometheus metric registry
     :param health_check: model health check function (need examples provided in schema)
     :param req_schema: request schema defined with :class:`pydantic.BaseModel`
     :param resp_schema: request schema defined with :class:`pydantic.BaseModel`
@@ -49,9 +52,19 @@ def create_app(infer, health_check, req_schema, resp_schema, use_msgpack, config
             logger.debug('return service endpoints')
             resp.media = {
                 'health check': {'/health': 'GET'},
+                'metrics': {'/metrics': 'GET'},
                 'inference': {'/inference': 'POST'},
                 'API document': {'/apidoc/redoc': 'GET', '/apidoc/swagger': 'GET'}
             }
+
+    class Metrics:
+        def __init__(self):
+            if os.environ.get('prometheus_multiproc_dir'):
+                multiprocess.MultiProcessCollector(metric_registry)
+
+        def on_get(self, req, resp):
+            resp.content_type = CONTENT_TYPE_LATEST
+            resp.body = generate_latest(metric_registry)
 
     class HealthCheck:
         @api.validate(resp=Response(HTTP_200=ServiceStatus))
@@ -80,6 +93,7 @@ def create_app(infer, health_check, req_schema, resp_schema, use_msgpack, config
 
     app.add_route('/', Homepage())
     app.add_route('/health', HealthCheck())
+    app.add_route('/metrics', Metrics())
     app.add_route('/inference', Inference())
     api.register(app)
     return app

@@ -2,6 +2,8 @@ import logging
 import random
 from wsgiref import simple_server
 
+from prometheus_client import Summary, Gauge, CollectorRegistry
+
 from .config import Config
 from .protocol import BatchProtocol
 from .service import create_app
@@ -38,8 +40,21 @@ class Ventu:
                 'cannot find corresponding examples'
         self._app = None
         self._sock = None
-        self.config = Config()
+        self.config = Config(**kwargs)
         self.logger = logging.getLogger(__name__)
+        self.metric_registry = CollectorRegistry()
+        self.SINGLE_PROCESS_TIME = Summary(
+            'single_process_time',
+            'Time spent in different part of the processing',
+            ('process',),
+            registry=self.metric_registry,
+        )
+        self.WORKER = Gauge(
+            'process_worker',
+            'numbers of workers',
+            multiprocess_mode='livesum',
+            registry=self.metric_registry,
+        )
 
     def health_check(self, batch=False):
         """
@@ -86,6 +101,7 @@ class Ventu:
             self.logger.debug('Create Falcon application')
             self._app = create_app(
                 self._single_infer,
+                self.metric_registry,
                 self.health_check,
                 self.req_schema,
                 self.resp_schema,
@@ -107,7 +123,8 @@ class Ventu:
             port or self.config.port,
             self.app
         )
-        httpd.serve_forever()
+        with self.WORKER.track_inprogress():
+            httpd.serve_forever()
 
     @property
     def sock(self):
@@ -177,9 +194,12 @@ class Ventu:
         return data
 
     def _single_infer(self, data):
-        data = self.preprocess(data)
-        data = self.inference(data)
-        data = self.postprocess(data)
+        with self.SINGLE_PROCESS_TIME.labels(process='preprocess').time():
+            data = self.preprocess(data)
+        with self.SINGLE_PROCESS_TIME.labels(process='inference').time():
+            data = self.inference(data)
+        with self.SINGLE_PROCESS_TIME.labels(process='postprocess').time():
+            data = self.postprocess(data)
         return data
 
     def _batch_infer(self, batch):

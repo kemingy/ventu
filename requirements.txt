@@ -2,3 +2,4 @@ falcon==2.0.0
 spectree>=0.3.3
 pydantic>=1.5.1
 msgpack>=1.0.0
+prometheus_client>=0.7.1

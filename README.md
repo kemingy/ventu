@@ -4,6 +4,7 @@
 [![versions](https://img.shields.io/pypi/pyversions/ventu.svg)](https://github.com/zenchars/ventu)
 ![Python Test](https://github.com/kemingy/ventu/workflows/Python%20package/badge.svg)
 [![Python document](https://github.com/kemingy/ventu/workflows/Python%20document/badge.svg)](https://kemingy.github.io/ventu)
+[![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/kemingy/ventu.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/kemingy/ventu/context:python)
 
 Serving the deep learning models easily.
 
@@ -21,8 +22,11 @@ pip install vento
 * backend service using [falcon](falcon.readthedocs.io/) supports both JSON and [msgpack](https://msgpack.org/)
 * dynamic batching with [batching](https://github.com/kemingy/batching) using Unix Domain Socket
     * errors in one request won't affect others in the same batch
+    * load balancing
 * support all the runtime
 * health check
+* monitoring metrics (Prometheus)
+    * if you have multiple workers, remember to setup `prometheus_multiproc_dir` environment variable to a directory
 * inference warm-up
 
 ## How to use
@@ -200,7 +204,7 @@ class CustomModel(Ventu):
         return {'label': [bool(numpy.mean(d) > 0.5) for d in data]}
 
 
-if __name__ == "__main__":
+def create_model():
     logger = logging.getLogger()
     formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
     handler = logging.StreamHandler()
@@ -210,7 +214,24 @@ if __name__ == "__main__":
 
     model_path = pathlib.Path(__file__).absolute().parent / 'sigmoid.onnx'
     model = CustomModel(str(model_path), Input, Output)
+    return model
+
+
+def create_app():
+    return create_model().app
+
+
+if __name__ == "__main__":
+    model = create_model()
     model.run_http(host='localhost', port=8000)
+
+    """
+    # try with `httpie`
+    ## health check
+        http :8000/health
+    ## inference
+        http POST :8000/inference text:='["hello", "world", "test"]'
+    """
 ```
 
 try with `httpie`
@@ -227,5 +248,5 @@ Open `localhost:8000/apidoc/redoc` in your browser to see the API document.
 **Run with Gunicorn**
 
 ```shell script
-gunicorn -w 2 model.app
+gunicorn -w 2 'example.single_service_demo:create_app()'
 ```

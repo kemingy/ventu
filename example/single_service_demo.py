@@ -56,7 +56,7 @@ class CustomModel(Ventu):
         return {'label': [bool(numpy.mean(d) > 0.5) for d in data]}
 
 
-if __name__ == "__main__":
+def create_model():
     logger = logging.getLogger()
     formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
     handler = logging.StreamHandler()
@@ -66,6 +66,15 @@ if __name__ == "__main__":
 
     model_path = pathlib.Path(__file__).absolute().parent / 'sigmoid.onnx'
     model = CustomModel(str(model_path), Input, Output)
+    return model
+
+
+def create_app():
+    return create_model().app
+
+
+if __name__ == "__main__":
+    model = create_model()
     model.run_http(host='localhost', port=8000)
 
     """

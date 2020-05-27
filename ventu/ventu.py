@@ -49,9 +49,16 @@ class Ventu:
             ('process',),
             registry=self.metric_registry,
         )
+        self.BATCH_PROCESS_TIME = Summary(
+            'batch_process_time',
+            'Time spent in different part of the processing',
+            ('process',),
+            registry=self.metric_registry,
+        )
         self.WORKER = Gauge(
             'process_worker',
             'numbers of workers',
+            ('protocol',),
             multiprocess_mode='livesum',
             registry=self.metric_registry,
         )
@@ -123,7 +130,7 @@ class Ventu:
             port or self.config.port,
             self.app
         )
-        with self.WORKER.track_inprogress():
+        with self.WORKER.labels('http').track_inprogress():
             httpd.serve_forever()
 
     @property
@@ -151,7 +158,8 @@ class Ventu:
         :param string addr: socket file address
         """
         self.logger.info(f'Run socket on {addr}')
-        self.sock.run(addr or self.config.socket)
+        with self.WORKER.labels('socket').track_inprogress():
+            self.sock.run(addr or self.config.socket)
 
     def batch_inference(self, batch):
         """
@@ -203,7 +211,10 @@ class Ventu:
         return data
 
     def _batch_infer(self, batch):
-        batch = [self.preprocess(data) for data in batch]
-        batch = self.batch_inference(batch)
-        batch = [self.postprocess(data) for data in batch]
+        with self.BATCH_PROCESS_TIME.labels(process='preprocess').time():
+            batch = [self.preprocess(data) for data in batch]
+        with self.BATCH_PROCESS_TIME.labels(process='inference').time():
+            batch = self.batch_inference(batch)
+        with self.BATCH_PROCESS_TIME.labels(process='postprocess').time():
+            batch = [self.postprocess(data) for data in batch]
         return batch

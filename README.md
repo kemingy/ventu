@@ -41,64 +41,71 @@ check the [document](https://kemingy.github.io/ventu) for API details
 
 ## Example
 
-### Dynamic Batching Demo
+The demo code can be found in [example](example).
 
-**Server**
-
-Need to run the [batching](https://github.com/kemingy/batching) server first.
-
-The demo code can be found in [batching demo](https://github.com/kemingy/batching/examples).
+### Service
 
 ```python
 import logging
-from pydantic import BaseModel
+import argparse
+
+from pydantic import BaseModel, confloat, constr
 from ventu import Ventu
+import torch
+import numpy as np
+from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
 
-# request schema
 class Req(BaseModel):
-    num: int
+    # the input sentence should be at least 2 characters
+    text: constr(min_length=2)
 
-    # request examples, used for health check and inference warm-up
     class Config:
+        # examples used for health check and warm-up
         schema_extra = {
             'examples': [
-                {'num': 23},
-                {'num': 0},
+                {'text': 'my cat is very cut'},
+                {'text': 'have you done your homework'},
             ]
         }
 
 
-# response schema
 class Resp(BaseModel):
-    square: int
-
-    # response examples, should be the true results for request examples
-    class Config:
-        schema_extra = {
-            'examples': [
-                {'square': 23 * 23},
-                {'square': 0},
-            ]
-        }
+    positive: confloat(ge=0, le=1)
+    negative: confloat(ge=0, le=1)
 
 
 class ModelInference(Ventu):
     def __init__(self, *args, **kwargs):
-        # init parent class
         super().__init__(*args, **kwargs)
+        self.tokenizer = DistilBertTokenizer.from_pretrained(
+            'distilbert-base-uncased')
+        self.model = DistilBertForSequenceClassification.from_pretrained(
+            'distilbert-base-uncased-finetuned-sst-2-english')
 
     def preprocess(self, data: Req):
-        return data.num
+        tokens = self.tokenizer.encode(data.text, add_special_tokens=True)
+        return tokens
 
     def batch_inference(self, data):
-        return [num ** 2 for num in data]
+        # batch inference is used in `socket` mode
+        data = [torch.tensor(token) for token in data]
+        with torch.no_grad():
+            result = self.model(torch.nn.utils.rnn.pad_sequence(data, batch_first=True))[0]
+        return result.numpy()
+
+    def inference(self, data):
+        # inference is used in `http` mode
+        with torch.no_grad():
+            result = self.model(torch.tensor(data).unsqueeze(0))[0]
+        return result.numpy()[0]
 
     def postprocess(self, data):
-        return {'square': data}
+        scores = (np.exp(data) / np.exp(data).sum(-1, keepdims=True)).tolist()
+        return {'negative': scores[0], 'positive': scores[1]}
 
 
-if __name__ == "__main__":
+def create_model():
     logger = logging.getLogger()
     formatter = logging.Formatter(
         fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
@@ -108,10 +115,41 @@ if __name__ == "__main__":
     logger.addHandler(handler)
 
     model = ModelInference(Req, Resp, use_msgpack=True)
-    model.run_socket('batching.socket')
+    return model
+
+
+def create_app():
+    """for gunicorn"""
+    return create_model().app
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Ventu service')
+    parser.add_argument('--mode', '-m', default='http', choices=('http', 'socket'))
+    parser.add_argument('--host', default='localhost')
+    parser.add_argument('--port', '-p', default=8080, type=int)
+    parser.add_argument('--socket', '-s', default='batching.socket')
+
+    args = parser.parse_args()
+    model = create_model()
+    if args.mode == 'socket':
+        model.run_socket(args.socket)
+    else:
+        model.run_http(args.host, args.port)
 ```
 
-**Client**
+You can run this script as:
+
+* a single thread HTTP service: `python example/app.py`
+* a HTTP service with multiple workers: `gunicorn -w 2 -b localhost:8080 'examples.app:create_app()'`
+    * when run as a HTTP service, can check the follow links:
+        * `/metrics` Prometheus metrics
+        * `/health` health check
+        * `/inference` inference
+        * `/apidoc/redoc` or `/apidoc/swagger` OpenAPI document
+* an inference worker behind the batching service: `python example/app.py -m socket` (need to run the [batching service](https://github.com/kemingy/batching) first)
+
+### Client
 
 ```python
 from concurrent import futures
@@ -119,7 +157,8 @@ import httpx
 import msgpack
 
 
-URL = 'http://localhost:8080'
+URL = 'http://localhost:8080/inference'
+HEADER = {'Content-Type': 'application/msgpack'}
 packer = msgpack.Packer(
     autoreset=True,
     use_bin_type=True,
@@ -127,126 +166,22 @@ packer = msgpack.Packer(
 
 
 def request(text):
-    return httpx.post(URL, data=packer.pack({'num': text}))
+    return httpx.post(URL, data=packer.pack({'text': text}), headers=HEADER)
 
 
 if __name__ == "__main__":
+    # simulate requests at the same time for batching
     with futures.ThreadPoolExecutor() as executor:
-        text = (0, 'test', -1, 233)
+        text = [
+            'They are smart',
+            'what is your problem?',
+            'I hate that!',
+            'x',
+        ]
         results = executor.map(request, text)
         for i, resp in enumerate(results):
             print(
                 f'>> {text[i]} -> [{resp.status_code}]\n'
-                f'{msgpack.unpackb(resp.content, raw=False)}'
+                f'{msgpack.unpackb(resp.content)}'
             )
-```
-
-### Single Service Demo
-
-source code can be found in [single_service_demo.py](example/single_service_demo.py)
-
-```python
-import logging
-import pathlib
-from typing import Tuple
-
-import numpy
-import onnxruntime
-from pydantic import BaseModel
-
-from ventu import Ventu
-
-
-# define the input schema
-class Input(BaseModel):
-    text: Tuple[(str,) * 3]
-
-    # provide an example for health check and inference warm-up
-    class Config:
-        schema_extra = {
-            'examples': [
-                {'text': ('hello', 'world', 'test')},
-            ]
-        }
-
-
-# define the output schema
-class Output(BaseModel):
-    label: Tuple[(bool,) * 3]
-
-
-class CustomModel(Ventu):
-    def __init__(self, model_path, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # load model
-        self.sess = onnxruntime.InferenceSession(model_path)
-        self.input_name = self.sess.get_inputs()[0].name
-        self.output_name = self.sess.get_outputs()[0].name
-
-    def preprocess(self, data: Input):
-        # data format is defined in ``Input``
-        words = [sent.split(' ')[:4] for sent in data.text]
-        # padding
-        words = [word + [''] * (4 - len(word)) for word in words]
-        # build embedding
-        emb = [[
-            numpy.random.random(5) if w else [0] * 5
-            for w in word]
-            for word in words]
-        return numpy.array(emb, dtype=numpy.float32)
-
-    def inference(self, data):
-        # model inference
-        return self.sess.run([self.output_name], {self.input_name: data})[0]
-
-    def postprocess(self, data):
-        # generate the same format as defined in ``Output``
-        return {'label': [bool(numpy.mean(d) > 0.5) for d in data]}
-
-
-def create_model():
-    logger = logging.getLogger()
-    formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
-    handler = logging.StreamHandler()
-    handler.setFormatter(formatter)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
-
-    model_path = pathlib.Path(__file__).absolute().parent / 'sigmoid.onnx'
-    model = CustomModel(str(model_path), Input, Output)
-    return model
-
-
-def create_app():
-    return create_model().app
-
-
-if __name__ == "__main__":
-    model = create_model()
-    model.run_http(host='localhost', port=8000)
-
-    """
-    # try with `httpie`
-    ## health check
-        http :8000/health
-    ## inference
-        http POST :8000/inference text:='["hello", "world", "test"]'
-    """
-```
-
-try with `httpie`
-
-```shell script
-# health check
-http :8000/health
-# inference
-http POST :8000/inference text:='["hello", "world", "test"]'
-```
-
-Open `localhost:8000/apidoc/redoc` in your browser to see the API document.
-
-**Run with Gunicorn**
-
-```shell script
-gunicorn -w 2 'example.single_service_demo:create_app()'
 ```

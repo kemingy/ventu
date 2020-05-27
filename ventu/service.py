@@ -2,10 +2,10 @@ import os
 import logging
 from enum import Enum
 
-from falcon import API, media
+from falcon import API, media, HTTP_422, after
 from pydantic import BaseModel
 from spectree import SpecTree, Response
-from prometheus_client import multiprocess, CONTENT_TYPE_LATEST, generate_latest
+from prometheus_client import multiprocess, CONTENT_TYPE_LATEST, generate_latest, Counter
 
 
 class StatusEnum(str, Enum):
@@ -46,6 +46,15 @@ def create_app(infer, metric_registry, health_check, req_schema, resp_schema, us
 
     api = SpecTree('falcon', title=config.name, version=config.version)
     logger = logging.getLogger(__name__)
+    VALIDATION_ERROR_COUNTER = Counter(
+        'validation_error_counter',
+        'numbers of validation errors',
+        registry=metric_registry,
+    )
+
+    def counter_hook(req, resp, resource):
+        if resp.status == HTTP_422:
+            VALIDATION_ERROR_COUNTER.inc()
 
     class Homepage:
         def on_get(self, req, resp):
@@ -82,6 +91,7 @@ def create_app(infer, metric_registry, health_check, req_schema, resp_schema, us
             resp.media = status.dict()
 
     class Inference:
+        @after(counter_hook)
         @api.validate(json=req_schema, resp=Response(HTTP_200=resp_schema))
         def on_post(self, req, resp):
             """

@@ -63,6 +63,7 @@ class BatchProtocol:
                 data = self._unpack(byte)
                 obj = self.req_schema.parse_obj(data)
                 validated.append(obj)
+                self.logger.debug(f'{obj} passes the validation')
             except ValidationError as err:
                 errors.append((i, self._pack(err.errors())))
                 self.logger.info(
@@ -75,11 +76,14 @@ class BatchProtocol:
                 self.logger.info(f'Job {ids[i]} error: {err}')
 
         # inference
-        result = self.infer(validated)
-        assert len(result) == len(validated), (
-            'Wrong number of inference results. '
-            f'Expcet {len(validated)}, get{len(result)}.'
-        )
+        self.logger.debug(f'Validated: {validated}, Errors: {errors}')
+        result = []
+        if validated:
+            result = self.infer(validated)
+            assert len(result) == len(validated), (
+                'Wrong number of inference results. '
+                f'Expcet {len(validated)}, get{len(result)}.'
+            )
 
         # validate response
         for data in result:

@@ -1,13 +1,15 @@
-import logging
 import argparse
+import logging
 
-from pydantic import BaseModel, confloat, constr
-from ventu import Ventu
-import torch
 import numpy as np
+import torch
+from pydantic import BaseModel, confloat, constr
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
+from ventu import Ventu
 
+
+# request schema used for validation
 class Req(BaseModel):
     # the input sentence should be at least 2 characters
     text: constr(min_length=2)
@@ -22,6 +24,7 @@ class Req(BaseModel):
         }
 
 
+# response schema used for validation
 class Resp(BaseModel):
     positive: confloat(ge=0, le=1)
     negative: confloat(ge=0, le=1)
@@ -29,13 +32,16 @@ class Resp(BaseModel):
 
 class ModelInference(Ventu):
     def __init__(self, *args, **kwargs):
+        # initialize super class with request & response schema, configs
         super().__init__(*args, **kwargs)
+        # initialize model and other tools
         self.tokenizer = DistilBertTokenizer.from_pretrained(
             'distilbert-base-uncased')
         self.model = DistilBertForSequenceClassification.from_pretrained(
             'distilbert-base-uncased-finetuned-sst-2-english')
 
     def preprocess(self, data: Req):
+        # preprocess a request data (as defined in the request schema)
         tokens = self.tokenizer.encode(data.text, add_special_tokens=True)
         return tokens
 
@@ -53,6 +59,7 @@ class ModelInference(Ventu):
         return result.numpy()[0]
 
     def postprocess(self, data):
+        # postprocess a response data (returned data as defined in the response schema)
         scores = (np.exp(data) / np.exp(data).sum(-1, keepdims=True)).tolist()
         return {'negative': scores[0], 'positive': scores[1]}
 
@@ -81,8 +88,8 @@ if __name__ == "__main__":
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', '-p', default=8080, type=int)
     parser.add_argument('--socket', '-s', default='batching.socket')
-
     args = parser.parse_args()
+
     model = create_model()
     if args.mode == 'socket':
         model.run_socket(args.socket)

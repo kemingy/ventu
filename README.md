@@ -16,7 +16,7 @@ pip install vento
 
 ## Features
 
-* Only need to implement Model(`preprocess`, `postprocess`, `inference` or `batch_inference`)
+* nnly need to implement Model(`preprocess`, `postprocess`, `inference` or `batch_inference`)
 * request & response data validation using [pydantic](https://pydantic-docs.helpmanual.io)
 * API document using [SpecTree](https://github.com/0b01001001/spectree) (when run with `run_http`)
 * backend service using [falcon](falcon.readthedocs.io/) supports both JSON and [msgpack](https://msgpack.org/)
@@ -41,21 +41,23 @@ check the [document](https://kemingy.github.io/ventu) for API details
 
 ## Example
 
-The demo code can be found in [example](example).
+The demo code can be found in [examples](examples).
 
 ### Service
 
 ```python
-import logging
 import argparse
+import logging
 
-from pydantic import BaseModel, confloat, constr
-from ventu import Ventu
-import torch
 import numpy as np
+import torch
+from pydantic import BaseModel, confloat, constr
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
+from ventu import Ventu
 
+
+# request schema used for validation
 class Req(BaseModel):
     # the input sentence should be at least 2 characters
     text: constr(min_length=2)
@@ -70,6 +72,7 @@ class Req(BaseModel):
         }
 
 
+# response schema used for validation
 class Resp(BaseModel):
     positive: confloat(ge=0, le=1)
     negative: confloat(ge=0, le=1)
@@ -77,13 +80,16 @@ class Resp(BaseModel):
 
 class ModelInference(Ventu):
     def __init__(self, *args, **kwargs):
+        # initialize super class with request & response schema, configs
         super().__init__(*args, **kwargs)
+        # initialize model and other tools
         self.tokenizer = DistilBertTokenizer.from_pretrained(
             'distilbert-base-uncased')
         self.model = DistilBertForSequenceClassification.from_pretrained(
             'distilbert-base-uncased-finetuned-sst-2-english')
 
     def preprocess(self, data: Req):
+        # preprocess a request data (as defined in the request schema)
         tokens = self.tokenizer.encode(data.text, add_special_tokens=True)
         return tokens
 
@@ -101,6 +107,7 @@ class ModelInference(Ventu):
         return result.numpy()[0]
 
     def postprocess(self, data):
+        # postprocess a response data (returned data as defined in the response schema)
         scores = (np.exp(data) / np.exp(data).sum(-1, keepdims=True)).tolist()
         return {'negative': scores[0], 'positive': scores[1]}
 
@@ -129,8 +136,8 @@ if __name__ == "__main__":
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', '-p', default=8080, type=int)
     parser.add_argument('--socket', '-s', default='batching.socket')
-
     args = parser.parse_args()
+
     model = create_model()
     if args.mode == 'socket':
         model.run_socket(args.socket)
@@ -140,22 +147,22 @@ if __name__ == "__main__":
 
 You can run this script as:
 
-* a single thread HTTP service: `python example/app.py`
+* a single thread HTTP service: `python examples/app.py`
 * a HTTP service with multiple workers: `gunicorn -w 2 -b localhost:8080 'examples.app:create_app()'`
     * when run as a HTTP service, can check the follow links:
         * `/metrics` Prometheus metrics
         * `/health` health check
         * `/inference` inference
         * `/apidoc/redoc` or `/apidoc/swagger` OpenAPI document
-* an inference worker behind the batching service: `python example/app.py -m socket` (need to run the [batching service](https://github.com/kemingy/batching) first)
+* an inference worker behind the batching service: `python examples/app.py -m socket` (need to run the [batching service](https://github.com/kemingy/batching) first)
 
 ### Client
 
 ```python
 from concurrent import futures
+
 import httpx
 import msgpack
-
 
 URL = 'http://localhost:8080/inference'
 HEADER = {'Content-Type': 'application/msgpack'}
@@ -170,7 +177,6 @@ def request(text):
 
 
 if __name__ == "__main__":
-    # simulate requests at the same time for batching
     with futures.ThreadPoolExecutor() as executor:
         text = [
             'They are smart',

@@ -15,7 +15,7 @@ Install
 
 .. code:: sh
 
-   pip install vento
+   pip install ventu
 
 Features
 --------

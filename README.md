@@ -11,7 +11,7 @@ Serving the deep learning models easily.
 ## Install
 
 ```sh
-pip install vento
+pip install ventu
 ```
 
 ## Features
@@ -44,6 +44,8 @@ check the [document](https://kemingy.github.io/ventu) for API details
 The demo code can be found in [examples](examples).
 
 ### Service
+
+Install requirements `pip install numpy torch transformers httpx`
 
 ```python
 import argparse

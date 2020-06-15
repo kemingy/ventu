@@ -1,5 +1,4 @@
 import logging
-import random
 from wsgiref import simple_server
 
 from prometheus_client import Summary, Gauge, CollectorRegistry
@@ -31,13 +30,14 @@ class Ventu:
         self.req_schema = req_schema
         self.resp_schema = resp_schema
         self.use_msgpack = use_msgpack
-        self.req_examples = req_schema.Config.schema_extra.get('examples')
-        self.resp_examples = resp_schema.Config.schema_extra.get('examples')
-        if self.resp_examples:
-            assert self.req_examples, \
+
+        self.req_example = req_schema.Config.schema_extra.get('example')
+        self.resp_example = resp_schema.Config.schema_extra.get('example')
+        self.warmup_size = req_schema.Config.schema_extra.get('batch_size', 1)
+        if self.resp_example:
+            assert self.req_example, \
                 'require request examples if response examples are provided'
-            assert len(self.req_examples) == len(self.resp_examples), \
-                'cannot find corresponding examples'
+
         self._app = None
         self._sock = None
         self.config = Config(**kwargs)
@@ -70,31 +70,29 @@ class Ventu:
         :param bool batch: batch inference or single inference (default)
         :return bool: ``True`` if passed health check
         """
-        if not self.req_examples:
+        if not self.req_example:
             self.logger.info('Please provide examples for inference warm-up')
             return
 
         if not batch:
-            index = random.choice(range(len(self.req_examples)))
-            example = self.req_examples[index]
-            self.logger.info(f'Single inference warm-up with example: {example}')
-            result = self._single_infer(self.req_schema.parse_obj(example))
-            if self.resp_examples:
+            self.logger.info(f'Single inference warm-up with example: {self.req_example}')
+            result = self._single_infer(self.req_schema.parse_obj(self.req_example))
+            if self.resp_example:
                 self.logger.info('Check single inference warm-up result')
-                expect = self.resp_examples[index]
-                self.resp_schema.parse_obj(expect)
-                assert expect == result, \
-                    f'does not match {expect} != {result} for {example}'
+                self.resp_schema.parse_obj(self.resp_example)
+                assert self.resp_example == result, \
+                    f'does not match {self.resp_example} != {result} for {self.req_example}'
         else:
-            self.logger.info('Batch inference warm-up')
-            examples = [self.req_schema.parse_obj(data) for data in self.req_examples]
+            self.logger.info(f'Batch inference warm-up with size: {self.warmup_size}')
+            examples = [
+                self.req_schema.parse_obj(self.req_example) for _ in range(self.warmup_size)]
             results = self._batch_infer(examples)
-            if self.resp_examples:
+            if self.resp_example:
                 self.logger.info('Check batch inference warm-up results')
-                for i in range(len(self.resp_examples)):
+                for i in range(len(self.resp_example)):
                     self.resp_schema.parse_obj(results[i])
-                    assert results[i] == self.resp_examples[i], \
-                        f'does not match {self.resp_examples[i]} != {results[i]} for {examples[i]}'
+                    assert results[i] == self.resp_example[i], \
+                        f'does not match {self.resp_example[i]} != {results[i]} for {examples[i]}'
 
         return True
 

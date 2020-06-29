@@ -16,11 +16,11 @@ pip install ventu
 
 ## Features
 
-* nnly need to implement Model(`preprocess`, `postprocess`, `inference` or `batch_inference`)
+* only need to implement Model(`preprocess`, `postprocess`, `inference` or `batch_inference`)
 * request & response data validation using [pydantic](https://pydantic-docs.helpmanual.io)
 * API document using [SpecTree](https://github.com/0b01001001/spectree) (when run with `run_http`)
 * backend service using [falcon](falcon.readthedocs.io/) supports both JSON and [msgpack](https://msgpack.org/)
-* dynamic batching with [batching](https://github.com/kemingy/batching) using Unix Domain Socket
+* dynamic batching with [batching](https://github.com/kemingy/batching) using Unix domain socket or TCP
     * errors in one request won't affect others in the same batch
     * load balancing
 * support all the runtime
@@ -132,15 +132,17 @@ def create_app():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Ventu service')
-    parser.add_argument('--mode', '-m', default='http', choices=('http', 'socket'))
+    parser.add_argument('--mode', '-m', default='http', choices=('http', 'unix', 'tcp'))
     parser.add_argument('--host', default='localhost')
     parser.add_argument('--port', '-p', default=8080, type=int)
     parser.add_argument('--socket', '-s', default='batching.socket')
     args = parser.parse_args()
 
     model = create_model()
-    if args.mode == 'socket':
-        model.run_socket(args.socket)
+    if args.mode == 'unix':
+        model.run_unix(args.socket)
+    elif args.mode == 'tcp':
+        model.run_tcp(args.host, args.port)
     else:
         model.run_http(args.host, args.port)
 ```
@@ -154,7 +156,7 @@ You can run this script as:
         * `/health` health check
         * `/inference` inference
         * `/apidoc/redoc` or `/apidoc/swagger` OpenAPI document
-* an inference worker behind the batching service: `python examples/app.py -m socket` (need to run the [batching service](https://github.com/kemingy/batching) first)
+* an inference worker behind the batching service: `python examples/app.py -m socket` (Unix domain socket) or `python examples/app.py -m tcp --host localhost --port 8888` (TCP) (need to run the [batching service](https://github.com/kemingy/batching) first)
 
 ### Client
 

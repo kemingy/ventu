@@ -30,8 +30,8 @@ Features
 -  backend service using `falcon <falcon.readthedocs.io/>`__ supports
    both JSON and `msgpack <https://msgpack.org/>`__
 -  dynamic batching with
-   `batching <https://github.com/kemingy/batching>`__ using Unix Domain
-   Socket
+   `batching <https://github.com/kemingy/batching>`__ using Unix domain
+   socket or TCP
 
    -  errors in one request won’t affect others in the same batch
 

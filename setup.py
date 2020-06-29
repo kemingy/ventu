@@ -14,7 +14,7 @@ with open(path.join(here, 'requirements.txt'), encoding='utf-8') as f:
 
 setup(
     name='ventu',
-    version='0.4.3',
+    version='0.4.5',
     author='Keming Yang',
     author_email='kemingy94@gmail.com',
     description=('Host your deep learning models easily.'),

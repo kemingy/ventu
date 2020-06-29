@@ -1,0 +1,429 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>ventu.ventu &mdash; ventu  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home" alt="Documentation Home"> ventu
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api.html">Ventu API</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ventu</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>ventu.ventu</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for ventu.ventu</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">wsgiref</span> <span class="kn">import</span> <span class="n">simple_server</span>
+
+<span class="kn">from</span> <span class="nn">prometheus_client</span> <span class="kn">import</span> <span class="n">Summary</span><span class="p">,</span> <span class="n">Gauge</span><span class="p">,</span> <span class="n">CollectorRegistry</span>
+
+<span class="kn">from</span> <span class="nn">.config</span> <span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span> <span class="nn">.protocol</span> <span class="kn">import</span> <span class="n">BatchProtocol</span>
+<span class="kn">from</span> <span class="nn">.service</span> <span class="kn">import</span> <span class="n">create_app</span>
+
+
+<div class="viewcode-block" id="Ventu"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu">[docs]</a><span class="k">class</span> <span class="nc">Ventu</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ventu: built for deep learning model serving</span>
+
+<span class="sd">    :param req_schema: request schema defined with :class:`pydantic.BaseModel`</span>
+<span class="sd">    :param resp_schema: response schema defined with :class:`pydantic.BaseModel`</span>
+<span class="sd">    :param bool use_msgpack: use msgpack for serialization or not (default: JSON)</span>
+<span class="sd">    :param args:</span>
+<span class="sd">    :param kwargs:</span>
+
+<span class="sd">    To create a model service, inherit this class and implement:</span>
+
+<span class="sd">        * ``preprocess`` (optional)</span>
+<span class="sd">        * ``postprocess`` (optional)</span>
+<span class="sd">        * ``inference`` (for standalone HTTP service)</span>
+<span class="sd">        * ``batch_inference`` (when working with batching service)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">req_schema</span><span class="p">,</span> <span class="n">resp_schema</span><span class="p">,</span> <span class="n">use_msgpack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">req_schema</span> <span class="o">=</span> <span class="n">req_schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resp_schema</span> <span class="o">=</span> <span class="n">resp_schema</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_msgpack</span> <span class="o">=</span> <span class="n">use_msgpack</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">req_example</span> <span class="o">=</span> <span class="n">req_schema</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">schema_extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span> <span class="o">=</span> <span class="n">resp_schema</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">schema_extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;example&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">warmup_size</span> <span class="o">=</span> <span class="n">req_schema</span><span class="o">.</span><span class="n">Config</span><span class="o">.</span><span class="n">schema_extra</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="p">,</span> \
+                <span class="s1">&#39;require request examples if response examples are provided&#39;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sock</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric_registry</span> <span class="o">=</span> <span class="n">CollectorRegistry</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">SINGLE_PROCESS_TIME</span> <span class="o">=</span> <span class="n">Summary</span><span class="p">(</span>
+            <span class="s1">&#39;single_process_time&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Time spent in different part of the processing&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;process&#39;</span><span class="p">,),</span>
+            <span class="n">registry</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_registry</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">BATCH_PROCESS_TIME</span> <span class="o">=</span> <span class="n">Summary</span><span class="p">(</span>
+            <span class="s1">&#39;batch_process_time&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Time spent in different part of the processing&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;process&#39;</span><span class="p">,),</span>
+            <span class="n">registry</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_registry</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">WORKER</span> <span class="o">=</span> <span class="n">Gauge</span><span class="p">(</span>
+            <span class="s1">&#39;process_worker&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;numbers of workers&#39;</span><span class="p">,</span>
+            <span class="p">(</span><span class="s1">&#39;protocol&#39;</span><span class="p">,),</span>
+            <span class="n">multiprocess_mode</span><span class="o">=</span><span class="s1">&#39;livesum&#39;</span><span class="p">,</span>
+            <span class="n">registry</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_registry</span><span class="p">,</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="Ventu.health_check"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.health_check">[docs]</a>    <span class="k">def</span> <span class="nf">health_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        health check for model inference (can also be used to warm-up)</span>
+
+<span class="sd">        :param bool batch: batch inference or single inference (default)</span>
+<span class="sd">        :return bool: ``True`` if passed health check</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Please provide examples for inference warm-up&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">batch</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Single inference warm-up with example: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_single_infer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_schema</span><span class="o">.</span><span class="n">parse_obj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Check single inference warm-up result&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resp_schema</span><span class="o">.</span><span class="n">parse_obj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span> <span class="o">==</span> <span class="n">result</span><span class="p">,</span> \
+                    <span class="sa">f</span><span class="s1">&#39;does not match </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="si">}</span><span class="s1"> != </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s1"> for </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="si">}</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Batch inference warm-up with size: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">warmup_size</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="n">examples</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">req_schema</span><span class="o">.</span><span class="n">parse_obj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">req_example</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">warmup_size</span><span class="p">)]</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_infer</span><span class="p">(</span><span class="n">examples</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Check batch inference warm-up results&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">resp_schema</span><span class="o">.</span><span class="n">parse_obj</span><span class="p">(</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                    <span class="k">assert</span> <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> \
+                        <span class="sa">f</span><span class="s1">&#39;does not match </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">resp_example</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1"> != </span><span class="si">{</span><span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1"> for </span><span class="si">{</span><span class="n">examples</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span>
+
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">app</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Falcon application with SpecTree validation</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">health_check</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Create Falcon application&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_app</span> <span class="o">=</span> <span class="n">create_app</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_single_infer</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">metric_registry</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">health_check</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">req_schema</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resp_schema</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">use_msgpack</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_app</span>
+
+<div class="viewcode-block" id="Ventu.run_http"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.run_http">[docs]</a>    <span class="k">def</span> <span class="nf">run_http</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run the HTTP service</span>
+
+<span class="sd">        :param string host: host address</span>
+<span class="sd">        :param int port: service port</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Run HTTP service on </span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">httpd</span> <span class="o">=</span> <span class="n">simple_server</span><span class="o">.</span><span class="n">make_server</span><span class="p">(</span>
+            <span class="n">host</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">host</span><span class="p">,</span>
+            <span class="n">port</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">port</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app</span>
+        <span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">WORKER</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="s1">&#39;http&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">track_inprogress</span><span class="p">():</span>
+            <span class="n">httpd</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">sock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        socket used for communication with batching service</span>
+
+<span class="sd">        this is a instance of :class:`ventu.protocol.BatchProtocol`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sock</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">health_check</span><span class="p">(</span><span class="n">batch</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Create socket&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sock</span> <span class="o">=</span> <span class="n">BatchProtocol</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_batch_infer</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">req_schema</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">resp_schema</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">use_msgpack</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sock</span>
+
+<div class="viewcode-block" id="Ventu.run_unix"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.run_unix">[docs]</a>    <span class="k">def</span> <span class="nf">run_unix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">addr</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run as an inference worker with Unix domain socket</span>
+
+<span class="sd">        :param string addr: socket file address</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Run Unix domain socket on </span><span class="si">{</span><span class="n">addr</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">WORKER</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="s1">&#39;unix&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">track_inprogress</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sock</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">addr</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">socket</span><span class="p">,</span> <span class="s1">&#39;unix&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Ventu.run_tcp"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.run_tcp">[docs]</a>    <span class="k">def</span> <span class="nf">run_tcp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        run as an inference worker with TCP</span>
+
+<span class="sd">        :param string host: host address</span>
+<span class="sd">        :param int port: service port</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">host</span> <span class="o">=</span> <span class="n">host</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">host</span>
+        <span class="n">port</span> <span class="o">=</span> <span class="n">port</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Run TCP service on </span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">WORKER</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="s1">&#39;unix&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">track_inprogress</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sock</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">),</span> <span class="s1">&#39;tcp&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Ventu.batch_inference"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.batch_inference">[docs]</a>    <span class="k">def</span> <span class="nf">batch_inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        batch inference the preprocessed data</span>
+
+<span class="sd">        :param batch: a list of data after :py:meth:`preprocess &lt;ventu.ventu.Ventu.preprocess&gt;`</span>
+<span class="sd">        :return: a list of inference results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">batch</span></div>
+
+<div class="viewcode-block" id="Ventu.inference"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.inference">[docs]</a>    <span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        inference the preprocessed data</span>
+
+<span class="sd">        :param data: data after :py:meth:`preprocess &lt;ventu.ventu.Ventu.preprocess&gt;`</span>
+<span class="sd">        :return: inference result</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Ventu.preprocess"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.preprocess">[docs]</a>    <span class="k">def</span> <span class="nf">preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        preprocess the data</span>
+
+<span class="sd">        :param data: as defined in ``req_schema``</span>
+<span class="sd">        :return: this will be the input data of</span>
+<span class="sd">            :py:meth:`inference &lt;ventu.ventu.Ventu.inference&gt;`</span>
+<span class="sd">            or one item of the input data of</span>
+<span class="sd">            :py:meth:`batch_inference &lt;ventu.ventu.Ventu.batch_inference&gt;`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+<div class="viewcode-block" id="Ventu.postprocess"><a class="viewcode-back" href="../../api.html#ventu.ventu.Ventu.postprocess">[docs]</a>    <span class="k">def</span> <span class="nf">postprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        postprocess the inference result</span>
+
+<span class="sd">        :param data: data after :py:meth:`inference &lt;ventu.ventu.Ventu.inference&gt;`</span>
+<span class="sd">            or one item of the :py:meth:`batch_inference &lt;ventu.ventu.Ventu.batch_inference&gt;`</span>
+<span class="sd">        :return: as defined in ``resp_schema``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">data</span></div>
+
+    <span class="k">def</span> <span class="nf">_single_infer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGLE_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;preprocess&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGLE_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;inference&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">inference</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">SINGLE_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;postprocess&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postprocess</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="nf">_batch_infer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">BATCH_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;preprocess&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">preprocess</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">BATCH_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;inference&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">batch_inference</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">BATCH_PROCESS_TIME</span><span class="o">.</span><span class="n">labels</span><span class="p">(</span><span class="n">process</span><span class="o">=</span><span class="s1">&#39;postprocess&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">():</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">postprocess</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">batch</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Keming
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

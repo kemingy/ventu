@@ -1,0 +1,476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Ventu API &mdash; ventu  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to ventu’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> ventu
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Ventu API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#config">Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ventu.protocol">Protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ventu.service">HTTP service</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ventu</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Ventu API</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-ventu.ventu">
+<span id="ventu-api"></span><h1>Ventu API<a class="headerlink" href="#module-ventu.ventu" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="ventu.ventu.Ventu">
+<em class="property">class </em><code class="sig-prename descclassname">ventu.ventu.</code><code class="sig-name descname">Ventu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">req_schema</span></em>, <em class="sig-param"><span class="n">resp_schema</span></em>, <em class="sig-param"><span class="n">use_msgpack</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ventu: built for deep learning model serving</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>req_schema</strong> – request schema defined with <code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p></li>
+<li><p><strong>resp_schema</strong> – response schema defined with <code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p></li>
+<li><p><strong>use_msgpack</strong> (<em>bool</em>) – use msgpack for serialization or not (default: JSON)</p></li>
+<li><p><strong>args</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<p>To create a model service, inherit this class and implement:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">preprocess</span></code> (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">postprocess</span></code> (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inference</span></code> (for standalone HTTP service)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">batch_inference</span></code> (when working with batching service)</p></li>
+</ul>
+</div></blockquote>
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.app">
+<em class="property">property </em><code class="sig-name descname">app</code><a class="headerlink" href="#ventu.ventu.Ventu.app" title="Permalink to this definition">¶</a></dt>
+<dd><p>Falcon application with SpecTree validation</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.batch_inference">
+<code class="sig-name descname">batch_inference</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.batch_inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.batch_inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>batch inference the preprocessed data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch</strong> – a list of data after <a class="reference internal" href="#ventu.ventu.Ventu.preprocess" title="ventu.ventu.Ventu.preprocess"><code class="xref py py-meth docutils literal notranslate"><span class="pre">preprocess</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a list of inference results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.health_check">
+<code class="sig-name descname">health_check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.health_check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.health_check" title="Permalink to this definition">¶</a></dt>
+<dd><p>health check for model inference (can also be used to warm-up)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch</strong> (<em>bool</em>) – batch inference or single inference (default)</p>
+</dd>
+<dt class="field-even">Return bool</dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if passed health check</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.inference">
+<code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>inference the preprocessed data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – data after <a class="reference internal" href="#ventu.ventu.Ventu.preprocess" title="ventu.ventu.Ventu.preprocess"><code class="xref py py-meth docutils literal notranslate"><span class="pre">preprocess</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>inference result</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.postprocess">
+<code class="sig-name descname">postprocess</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.postprocess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.postprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>postprocess the inference result</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – data after <a class="reference internal" href="#ventu.ventu.Ventu.inference" title="ventu.ventu.Ventu.inference"><code class="xref py py-meth docutils literal notranslate"><span class="pre">inference</span></code></a>
+or one item of the <a class="reference internal" href="#ventu.ventu.Ventu.batch_inference" title="ventu.ventu.Ventu.batch_inference"><code class="xref py py-meth docutils literal notranslate"><span class="pre">batch_inference</span></code></a></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>as defined in <code class="docutils literal notranslate"><span class="pre">resp_schema</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.preprocess">
+<code class="sig-name descname">preprocess</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.preprocess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.preprocess" title="Permalink to this definition">¶</a></dt>
+<dd><p>preprocess the data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>data</strong> – as defined in <code class="docutils literal notranslate"><span class="pre">req_schema</span></code></p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>this will be the input data of
+<a class="reference internal" href="#ventu.ventu.Ventu.inference" title="ventu.ventu.Ventu.inference"><code class="xref py py-meth docutils literal notranslate"><span class="pre">inference</span></code></a>
+or one item of the input data of
+<a class="reference internal" href="#ventu.ventu.Ventu.batch_inference" title="ventu.ventu.Ventu.batch_inference"><code class="xref py py-meth docutils literal notranslate"><span class="pre">batch_inference</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.run_http">
+<code class="sig-name descname">run_http</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.run_http"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.run_http" title="Permalink to this definition">¶</a></dt>
+<dd><p>run the HTTP service</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> (<em>string</em>) – host address</p></li>
+<li><p><strong>port</strong> (<em>int</em>) – service port</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.run_tcp">
+<code class="sig-name descname">run_tcp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">host</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">port</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.run_tcp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.run_tcp" title="Permalink to this definition">¶</a></dt>
+<dd><p>run as an inference worker with TCP</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> (<em>string</em>) – host address</p></li>
+<li><p><strong>port</strong> (<em>int</em>) – service port</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.run_unix">
+<code class="sig-name descname">run_unix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">addr</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/ventu.html#Ventu.run_unix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.ventu.Ventu.run_unix" title="Permalink to this definition">¶</a></dt>
+<dd><p>run as an inference worker with Unix domain socket</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>addr</strong> (<em>string</em>) – socket file address</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.ventu.Ventu.sock">
+<em class="property">property </em><code class="sig-name descname">sock</code><a class="headerlink" href="#ventu.ventu.Ventu.sock" title="Permalink to this definition">¶</a></dt>
+<dd><p>socket used for communication with batching service</p>
+<p>this is a instance of <a class="reference internal" href="#ventu.protocol.BatchProtocol" title="ventu.protocol.BatchProtocol"><code class="xref py py-class docutils literal notranslate"><span class="pre">ventu.protocol.BatchProtocol</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="config">
+<h2>Config<a class="headerlink" href="#config" title="Permalink to this headline">¶</a></h2>
+<p>Check <code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseSettings</span></code></p>
+<span class="target" id="module-ventu.config"></span><dl class="py class">
+<dt id="ventu.config.Config">
+<em class="property">class </em><code class="sig-prename descclassname">ventu.config.</code><code class="sig-name descname">Config</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_env_file</span><span class="p">:</span> <span class="n">Optional<span class="p">[</span>Union<span class="p">[</span>pathlib.Path<span class="p">, </span>str<span class="p">]</span><span class="p">]</span></span> <span class="o">=</span> <span class="default_value">'&lt;object object&gt;'</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">name</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'Deep Learning Service'</span></em>, <em class="sig-param"><span class="n">version</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'latest'</span></em>, <em class="sig-param"><span class="n">host</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'localhost'</span></em>, <em class="sig-param"><span class="n">port</span><span class="p">:</span> <span class="n">ventu.config.ConstrainedIntValue</span> <span class="o">=</span> <span class="default_value">8000</span></em>, <em class="sig-param"><span class="n">socket</span><span class="p">:</span> <span class="n">str</span> <span class="o">=</span> <span class="default_value">'batching.socket'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/config.html#Config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.config.Config" title="Permalink to this definition">¶</a></dt>
+<dd><p>default config, can be rewrite with environment variables begin with <code class="docutils literal notranslate"><span class="pre">ventu_</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Variables</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – default service name shown in OpenAPI</p></li>
+<li><p><strong>version</strong> – default service version shown in OpenAPI</p></li>
+<li><p><strong>host</strong> – default host address for the HTTP service</p></li>
+<li><p><strong>port</strong> – default port for the HTTP service</p></li>
+<li><p><strong>socket</strong> – default socket file to communicate with batching service</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ventu.protocol">
+<span id="protocol"></span><h2>Protocol<a class="headerlink" href="#module-ventu.protocol" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ventu.protocol.BatchProtocol">
+<em class="property">class </em><code class="sig-prename descclassname">ventu.protocol.</code><code class="sig-name descname">BatchProtocol</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">infer</span></em>, <em class="sig-param"><span class="n">req_schema</span></em>, <em class="sig-param"><span class="n">resp_schema</span></em>, <em class="sig-param"><span class="n">use_msgpack</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/protocol.html#BatchProtocol"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.protocol.BatchProtocol" title="Permalink to this definition">¶</a></dt>
+<dd><p>protocol used to communicate with batching service</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>infer</strong> – model infer function (contains <cite>preprocess</cite>, <cite>batch_inference</cite> and <cite>postprocess</cite>)</p></li>
+<li><p><strong>req_schema</strong> – request schema defined with <cite>pydantic</cite></p></li>
+<li><p><strong>resp_schema</strong> – response schema defined with <cite>pydantic</cite></p></li>
+<li><p><strong>use_msgpack</strong> (<em>bool</em>) – use msgpack for serialization or not (default: JSON)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="ventu.protocol.BatchProtocol.process">
+<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">conn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/protocol.html#BatchProtocol.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.protocol.BatchProtocol.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>process batch queries and return the inference results</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>conn</strong> – socket connection</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.protocol.BatchProtocol.run">
+<code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">addr</span></em>, <em class="sig-param"><span class="n">protocol</span><span class="o">=</span><span class="default_value">'unix'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/protocol.html#BatchProtocol.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.protocol.BatchProtocol.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>run socket communication</p>
+<p>this should run <strong>after</strong> the socket file is created by the batching service</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>protocol</strong> (<em>string</em>) – ‘unix’ or ‘tcp’</p></li>
+<li><p><strong>addr</strong> – socket file path or (host:str, port:int)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ventu.protocol.BatchProtocol.stop">
+<code class="sig-name descname">stop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/protocol.html#BatchProtocol.stop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.protocol.BatchProtocol.stop" title="Permalink to this definition">¶</a></dt>
+<dd><p>stop the socket communication</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ventu.service">
+<span id="http-service"></span><h2>HTTP service<a class="headerlink" href="#module-ventu.service" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ventu.service.ServiceStatus">
+<em class="property">class </em><code class="sig-prename descclassname">ventu.service.</code><code class="sig-name descname">ServiceStatus</code><span class="sig-paren">(</span><em class="sig-param">*</em>, <em class="sig-param">inference: ventu.service.StatusEnum</em>, <em class="sig-param">service: ventu.service.StatusEnum = &lt;StatusEnum.ok: 'OK'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/service.html#ServiceStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.service.ServiceStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>service health status</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="ventu.service.StatusEnum">
+<em class="property">class </em><code class="sig-prename descclassname">ventu.service.</code><code class="sig-name descname">StatusEnum</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/service.html#StatusEnum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.service.StatusEnum" title="Permalink to this definition">¶</a></dt>
+<dd><p>An enumeration.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ventu.service.create_app">
+<code class="sig-prename descclassname">ventu.service.</code><code class="sig-name descname">create_app</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">infer</span></em>, <em class="sig-param"><span class="n">metric_registry</span></em>, <em class="sig-param"><span class="n">health_check</span></em>, <em class="sig-param"><span class="n">req_schema</span></em>, <em class="sig-param"><span class="n">resp_schema</span></em>, <em class="sig-param"><span class="n">use_msgpack</span></em>, <em class="sig-param"><span class="n">config</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ventu/service.html#create_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ventu.service.create_app" title="Permalink to this definition">¶</a></dt>
+<dd><p>create <code class="xref py py-class docutils literal notranslate"><span class="pre">falcon</span></code> application</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>infer</strong> – model infer function (contains <cite>preprocess</cite>, <cite>inference</cite>, and <cite>postprocess</cite>)</p></li>
+<li><p><strong>metric_registry</strong> – Prometheus metric registry</p></li>
+<li><p><strong>health_check</strong> – model health check function (need examples provided in schema)</p></li>
+<li><p><strong>req_schema</strong> – request schema defined with <code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p></li>
+<li><p><strong>resp_schema</strong> – request schema defined with <code class="xref py py-class docutils literal notranslate"><span class="pre">pydantic.BaseModel</span></code></p></li>
+<li><p><strong>use_msgpack</strong> (<em>bool</em>) – use msgpack for serialization or not (default: JSON)</p></li>
+<li><p><strong>config</strong> – configs <a class="reference internal" href="#ventu.config.Config" title="ventu.config.Config"><code class="xref py py-class docutils literal notranslate"><span class="pre">ventu.config.Config</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a <code class="xref py py-class docutils literal notranslate"><span class="pre">falcon</span></code> application</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to ventu’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Keming
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

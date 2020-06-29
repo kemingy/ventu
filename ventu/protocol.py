@@ -24,10 +24,10 @@ class BatchProtocol:
         self.req_schema = req_schema
         self.resp_schema = resp_schema
         self.use_msgpack = use_msgpack
-        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.packer = msgpack.Packer(autoreset=True, use_bin_type=True)
         self.logger = logging.getLogger(__name__)
         self.infer = infer
+        self.sock = None
 
     def _pack(self, data):
         return self.packer.pack(data) if self.use_msgpack else json.dumps(data)
@@ -107,14 +107,19 @@ class BatchProtocol:
         conn.sendall(struct.pack(self.STRUCT_FORMAT, len(data)))
         conn.sendall(data)
 
-    def run(self, addr):
+    def run(self, addr, protocol='unix'):
         """
         run socket communication
 
         this should run **after** the socket file is created by the batching service
 
-        :param string addr: socket file path
+        :param string protocol: 'unix' or 'tcp'
+        :param addr: socket file path or (host:str, port:int)
         """
+        self.sock = socket.socket(
+            socket.AF_UNIX if protocol == 'unix' else socket.AF_INET,
+            socket.SOCK_STREAM,
+        )
         self.logger.info(f'Connect to socket: {addr}')
         while True:
             try:

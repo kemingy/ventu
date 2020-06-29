@@ -149,15 +149,28 @@ class Ventu:
             )
         return self._sock
 
-    def run_socket(self, addr=None):
+    def run_unix(self, addr=None):
         """
-        run as an inference worker
+        run as an inference worker with Unix domain socket
 
         :param string addr: socket file address
         """
-        self.logger.info(f'Run socket on {addr}')
-        with self.WORKER.labels('socket').track_inprogress():
-            self.sock.run(addr or self.config.socket)
+        self.logger.info(f'Run Unix domain socket on {addr}')
+        with self.WORKER.labels('unix').track_inprogress():
+            self.sock.run(addr or self.config.socket, 'unix')
+
+    def run_tcp(self, host=None, port=None):
+        """
+        run as an inference worker with TCP
+
+        :param string host: host address
+        :param int port: service port
+        """
+        host = host or self.config.host
+        port = port or self.config.port
+        self.logger.info(f'Run TCP service on {host}:{port}')
+        with self.WORKER.labels('unix').track_inprogress():
+            self.sock.run((host, port), 'tcp')
 
     def batch_inference(self, batch):
         """

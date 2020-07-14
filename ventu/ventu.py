@@ -1,7 +1,7 @@
 import logging
 from wsgiref import simple_server
 
-from prometheus_client import Summary, Gauge, CollectorRegistry
+from prometheus_client import Histogram, Gauge, CollectorRegistry
 
 from .config import Config
 from .protocol import BatchProtocol
@@ -43,13 +43,13 @@ class Ventu:
         self.config = Config(**kwargs)
         self.logger = logging.getLogger(__name__)
         self.metric_registry = CollectorRegistry()
-        self.SINGLE_PROCESS_TIME = Summary(
+        self.SINGLE_PROCESS_TIME = Histogram(
             'single_process_time',
             'Time spent in different part of the processing',
             ('process',),
             registry=self.metric_registry,
         )
-        self.BATCH_PROCESS_TIME = Summary(
+        self.BATCH_PROCESS_TIME = Histogram(
             'batch_process_time',
             'Time spent in different part of the processing',
             ('process',),

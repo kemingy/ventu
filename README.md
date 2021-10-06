@@ -8,6 +8,10 @@
 
 Serving the deep learning models easily.
 
+## Attention
+
+**This project is just a proof of concept. Check the [MOSEC](https://github.com/mosecorg/mosec) for production usage.**
+
 ## Install
 
 ```sh
